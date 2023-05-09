@@ -251,8 +251,8 @@ local function splitParts(source, offset, limit)
         table.insert(lines, line)
       elseif line:match("^=over") then
         table.insert(parts, { kind = "part", lines = lines })
-        state = state + 1
-        lines = {}
+        state = state + 2
+        lines = {line}
       else
         table.insert(lines, line)
       end
@@ -262,10 +262,10 @@ local function splitParts(source, offset, limit)
         state = state + 1
       elseif line:match("^=back") then
         state = state - 1
-        if state == 0 then
-          table.insert(parts, { kind = "part", lines = lines })
-          lines = {}
-        end
+      elseif state == 1 and line:match("^%s+$") then
+        table.insert(parts, { kind = "list", lines = lines })
+        lines = {}
+        state = 0
       end
     end
   end
@@ -306,19 +306,19 @@ local function splitItems(source, offset, limit)
         table.insert(lines, line)
         state = state + 1
       elseif line:match("^=back") then
-        table.insert(lines, line)
         state = state - 1
         if state == 0 then
-          lines[#lines] = nil
           table.insert(items, { kind = "item", lines = lines })
           lines = { line }
+        else
+          table.insert(lines, line)
         end
       else
         table.insert(lines, line)
       end
     end
   end
-  table.insert(items, { kind = "back", lines = { lines } })
+  table.insert(items, { kind = "back", lines = lines })
   offset = 1
   for _, item in ipairs(items) do
     item.offset = offset

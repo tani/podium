@@ -1,7 +1,15 @@
 local pod = require './pod'
 
-describe("POD Parser", function()
+function unindent(str)
+  local lines = pod.splitLines(str)
+  local indent = lines[1]:match("^%s*")
+  for i, line in ipairs(lines) do
+    lines[i] = line:gsub("^" .. indent, "")
+  end
+  return table.concat(lines)
+end
 
+describe("POD Parser", function()
   describe("splitLines function", function()
     it("splits lines by \\n", function()
       local actual = pod.splitLines("foo\nbar\nbazz")
@@ -50,44 +58,347 @@ describe("POD Parser", function()
       }
       assert.are.same(expected, actual)
     end)
-  it("splits paragraphs by over-back block", function()
-    local actual = pod.splitParagraphs[[
-foo
+    it("splits paragraphs by over-back block", function()
+      local actual = pod.splitParagraphs(unindent[[
+        foo
 
-=over
+        =over
 
-=item bar
+        =item bar
 
-=item bazz
+        =item bazz
 
-=back
+        =back
 
-hoge]]
-    local expected = {
-      {
-        kind = "para",
-        lines = { "foo\n", "\n" },
-        offset = 1,
-        limit = 5,
-      },
-      {
-        kind = "list",
-        lines = {
-          "=over\n", "\n",
-          "=item bar\n", "\n",
-          "=item bazz\n", "\n",
-          "=back\n", "\n",
+        hoge]])
+      local expected = {
+        {
+          kind = "para",
+          lines = { "foo\n", "\n" },
+          offset = 1,
+          limit = 5,
         },
-        offset = 6,
-        limit = 41,
-      },
-      {
-        kind = "para",
-        lines = { "hoge" },
-        offset = 42,
-        limit = 45,
-      },
-    }
+        {
+          kind = "list",
+          lines = {
+            "=over\n", "\n",
+            "=item bar\n", "\n",
+            "=item bazz\n", "\n",
+            "=back\n", "\n",
+          },
+          offset = 6,
+          limit = 41,
+        },
+        {
+          kind = "para",
+          lines = { "hoge" },
+          offset = 42,
+          limit = 45,
+        },
+      }
+    end)
+    it("splits paragraphs by nested over-back block", function()
+      local actual = pod.splitParagraphs(unindent[[
+        foo
+
+        =over
+
+        =item bar
+
+        =over
+
+        =item bazz
+
+        =back
+
+        =item hoge
+
+        =back
+
+        fuga]])
+      local expected = {
+        {
+          kind = "para",
+          lines = { "foo\n", "\n" },
+          offset = 1,
+          limit = 5,
+        },
+        {
+          kind = "list",
+          lines = {
+            "=over\n", "\n",
+            "=item bar\n", "\n",
+            "=over\n", "\n",
+            "=item bazz\n", "\n",
+            "=back\n", "\n",
+            "=item hoge\n", "\n",
+            "=back\n", "\n",
+          },
+          offset = 6,
+          limit = 61,
+        },
+        {
+          kind = "para",
+          lines = { "fuga" },
+          offset = 62,
+          limit = 65,
+        },
+      }
+    end)
+    it("splits paragraphs by begin-end block", function()
+      local actual = pod.splitParagraphs(unindent[[
+        foo
+
+        =begin html
+
+        <p>bar</p>
+
+        =end html
+
+        bar]])
+      local expected = {
+        {
+          kind = "para",
+          lines = { "foo\n", "\n" },
+          offset = 1,
+          limit = 5,
+        },
+        {
+          kind = "html",
+          lines = {
+            "=begin html\n", "\n",
+            "<p>bar</p>\n", "\n",
+            "=end html\n", "\n",
+          },
+          offset = 6,
+          limit = 31,
+        },
+        {
+          kind = "para",
+          lines = { "bar" },
+          offset = 32,
+          limit = 34,
+        },
+      }
+    end)
+    it("does not split lines with no empty line", function()
+      local actual = pod.splitParagraphs("foo\nbar\nbazz")
+      local expected = {
+        {
+          kind = "para",
+          lines = { "foo\n", "bar\n", "bazz" },
+          offset = 1,
+          limit = 12,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+    it("does not split lines with no empty line", function()
+      local actual = pod.splitParagraphs(unindent[[
+        foo
+
+        =over
+
+        =item bar
+
+        =item bazz
+
+        =back
+        hoge]])
+      local expected = {
+        {
+          kind = "para",
+          lines = { "foo\n", "\n" },
+          offset = 1,
+          limit = 5,
+        },
+        {
+          kind = "list",
+          lines = {
+            "=over\n", "\n",
+            "=item bar\n", "\n",
+            "=item bazz\n", "\n",
+            "=back\n", "hoge"
+          },
+          offset = 6,
+          limit = 45,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
   end)
+  describe("splitItems function", function()
+    it("split items", function()
+      local actual = pod.splitItems(unindent[[
+        =over
+        =item foo
+
+        =item bar
+
+        =item bazz
+        =back]])
+      local expected = {
+        {
+          kind = "over",
+          lines = {
+            "=over\n",
+          },
+          offset = 1,
+          limit = 6,
+        },
+        {
+          kind = "item",
+          lines = {
+            "=item foo\n",
+            "\n",
+          },
+          offset = 7,
+          limit = 17,
+        },
+        {
+          kind = "item",
+          lines = {
+            "=item bar\n",
+            "\n",
+          },
+          offset = 18,
+          limit = 28,
+        },
+        {
+          kind = "item",
+          lines = {
+            "=item bazz\n",
+          },
+          offset = 29,
+          limit = 39,
+        },
+        {
+          kind = "back",
+          lines = {
+            "=back",
+          },
+          offset = 40,
+          limit = 44,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+    it("split items with nested list", function()
+      local actual = pod.splitItems(unindent[[
+        =over
+        =item foo
+
+        =over
+        =item bar
+
+        =item bazz
+        =back
+
+        =item hoge
+        =back]])
+      local expected = {
+        {
+          kind = "over",
+          lines = {
+            "=over\n",
+          },
+          offset = 1,
+          limit = 6,
+        },
+        {
+          kind = "item",
+          lines = {
+            "=item foo\n",
+            "\n",
+          },
+          offset = 7,
+          limit = 17,
+        },
+        {
+          kind = "over",
+          lines = {
+            "=over\n",
+            "=item bar\n", "\n",
+            "=item bazz\n",
+            "=back\n", "\n",
+          },
+          offset = 18,
+          limit = 56,
+        },
+        {
+          kind = "item",
+          lines = {
+            "=item hoge\n",
+          },
+          offset = 57,
+          limit = 67,
+        },
+        {
+          kind = "back",
+          lines = {
+            "=back",
+          },
+          offset = 68,
+          limit = 72,
+        },
+      }
+    end)
+  end)
+
+  describe("splitParts function", function()
+    it("split parts", function()
+      local actual = pod.splitParts(unindent[[
+        =item foo bar]])
+      local expected = {
+        {
+          kind = "part",
+          lines = {
+            "=item foo bar",
+          },
+          offset = 1,
+          limit = 13,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+    it("split parts with begin - end", function()
+      local actual = pod.splitParts(unindent[[
+        =item foo
+        bar
+        =over
+        =item
+        =back
+
+        bazz]])
+      local expected = {
+        {
+          kind = "part",
+          lines = {
+            "=item foo\n", "bar\n",
+          },
+          offset = 1,
+          limit = 14,
+        },
+        {
+          kind = "list",
+          lines = {
+            "=over\n",
+            "=item\n",
+            "=back\n", "\n",
+          },
+          offset = 15,
+          limit = 33,
+        },
+        {
+          kind = "part",
+          lines = {
+            "bazz",
+          },
+          offset = 34,
+          limit = 37,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
   end)
 end)
