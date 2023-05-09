@@ -32,12 +32,20 @@ local function splitLines(source, offset, limit)
   local newline = guessNewline(source)
   local lines = {}
   local i = offset
-  for line in source:sub(offset, limit):gmatch("[^\r\n]*" .. newline) do
-    table.insert(lines, line)
-    i = i + #line
-  end
-  if i < limit then
-    table.insert(lines, source:sub(i))
+  while i <= limit do
+    local j = source:sub(1, limit):find("[\r\n]", i)
+    if j == nil then
+      table.insert(lines, source:sub(i, limit))
+      i = limit + 1
+    else
+      if source:sub(j, j) == "\r" then
+        if source:sub(j+1, j+1) == "\n" then
+          j = j +  1
+        end
+      end
+      table.insert(lines, source:sub(i, j))
+      i = j + 1
+    end
   end
   return lines
 end
@@ -130,17 +138,16 @@ local function splitParagraphs(source)
 
   local document = {}
   local lines = {}
-  local nl = guessNewline(source)
-  for _, line in ipairs(splitLines(source .. nl .. nl)) do
+  for _, line in ipairs(splitLines(source)) do
     if state_list > 0 then
       table.insert(lines, line)
       if line:match("^=over") then
         state_list = state_list + 1
       elseif line:match("^=back") then
         state_list = state_list - 1
-      end
-      if state_list == 0 then
+      elseif state_list == 1 and line:match("^%s+$") then
         table.insert(document, { kind = "list", lines = lines })
+        state_list = 0
         lines = {}
       end
     elseif state_para > 0 then
@@ -156,7 +163,7 @@ local function splitParagraphs(source)
         lines = {line}
         state_verb = 0
         if line:match("^=over") then
-          state_list = 1
+          state_list = 2
         elseif line:match("^=begin") then
           state_block = 2
           block_name = line:match("^=begin%s+(%S+)")
@@ -192,7 +199,7 @@ local function splitParagraphs(source)
     else
       if line:match("^=over") then
         table.insert(lines, line)
-        state_list = 1
+        state_list = 2
       elseif line:match("^=begin") then
         table.insert(lines, line)
         state_block = 2
@@ -208,6 +215,19 @@ local function splitParagraphs(source)
         table.insert(lines, line)
         state_para = 1
       end
+    end
+  end
+  if #lines > 0 then
+    if state_list > 0 then
+      table.insert(document, { kind = "list", lines = lines })
+    elseif state_para > 0 then
+      table.insert(document, { kind = "para", lines = lines })
+    elseif state_verb > 0 then
+      table.insert(document, { kind = "verb", lines = lines })
+    elseif state_block > 0 then
+      table.insert(document, { kind = block_name, lines = lines })
+    elseif state_cmd > 0 then
+      table.insert(document, { kind = cmd_name, lines = lines })
     end
   end
   offset = 1
@@ -327,3 +347,5 @@ M.splitParagraphs = splitParagraphs
 M.splitParts = splitParts
 M.splitItems = splitItems
 M.findInline = findInline
+
+return M
