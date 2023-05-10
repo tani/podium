@@ -2,31 +2,11 @@
 
 
 local M = {}
-
-
-local function guessNewline(source)
-  local i = 1
-  while i <= #source do
-    local c = source:sub(i, i)
-    if c == '\n' then
-      return '\n'
-    elseif c == '\r' then
-      if source:sub(i + 1, i + 1) == '\n' then
-        return '\r\n'
-      else
-        return '\r'
-      end
-    end
-    i = i + 1
-  end
-  return '\n'
-end
-
+local _ = nil -- dummy
 
 local function splitLines(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
-  local newline = guessNewline(source)
   local lines = {}
   local i = offset
   while i <= limit do
@@ -229,13 +209,13 @@ local function splitParagraphs(source)
       table.insert(paragraphs, { kind = cmd_name, lines = lines })
     end
   end
-  offset = 1
-  for _, lines in ipairs(paragraphs) do
-    lines.offset = offset
-    for _, line in ipairs(lines.lines) do
+  local offset = 1
+  for _, paragraph in ipairs(paragraphs) do
+    paragraph.offset = offset
+    for _, line in ipairs(paragraph.lines) do
       offset = offset + #line
     end
-    lines.limit = offset - 1
+    paragraph.limit = offset - 1
   end
   return paragraphs
 end
@@ -338,7 +318,6 @@ local function splitTokens(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
   local tokens = {}
-  local lines = {}
   local i = offset
   while i <= limit do
     local b_cmd, b_arg, e_arg, e_cmd = findInline(source, i, limit)
@@ -386,35 +365,12 @@ local function append(t, ...)
   for _, v in ipairs(t) do
     table.insert(r, v)
   end
-  for _, v in ipairs({...}) do
-    for _, v in ipairs(v) do
+  for _, s in ipairs({...}) do
+    for _, v in ipairs(s) do
       table.insert(r, v)
     end
   end
   return r
-end
-
-
-local function process(source)
-  local elements = splitParagraphs(source)
-  local i = 1
-  while i <= #elements do
-    local element = elements[i]
-    if element.kind == "text" then
-      i = i + 1
-    else
-      elements = append(
-        slice(elements, 1, i - 1),
-        transform[element.kind](source, element.offset, element.limit),
-        slice(elements, i + 1)
-      )
-    end
-  end
-  for _, element in ipairs(elements) do
-    for _, line in ipairs(element.lines) do
-      print(line)
-    end
-  end
 end
 
 
@@ -458,20 +414,20 @@ local transform = {
       { { kind = "text", offset = -1, limit = -1, lines = { "</p>" } } }
     )
   end,
-  over = function(source, offset, limit)
+  over = function(_source, _offset, _limit)
     return {
       { kind = "text", offset = -1, limit = -1, lines = { "<ul>" } }
     }
   end,
-  back = function(source, offset, limit)
+  back = function(_source, _offset, _limit)
     return {
       { kind = "text", offset = -1, limit = -1, lines = { "</ul>" } }
     }
   end,
-  cut = function(source, offset, limit)
+  cut = function(_source, _offset, _limit)
     return {}
   end,
-  pod = function(source, offset, limit)
+  pod = function(_source, _offset, _limit)
     return {}
   end,
   verb = function(source, offset, limit)
@@ -515,13 +471,6 @@ local transform = {
       { kind = "text", offset = -1, limit = -1, lines = { "</pre></code>" } }
     }
   end,
-  para = function(source, offset, limit)
-    return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { "<p>" } } },
-      splitTokens(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</p>" } } }
-    )
-  end,
   list = function(source, offset, limit)
     return splitItems(source, offset, limit)
   end,
@@ -546,13 +495,13 @@ local transform = {
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
-    local b, e, text, url = source:find("([^|]*)|(.*)", offset, limit)
+    local b, e = source:find("[^|]*|", offset, limit)
     if b then
       return append(
         { { kind = "text", offset = -1, limit = -1, lines = { "<a href=\"" } } },
-        splitTokens(source, b, e),
+        splitTokens(source, e + 1, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "\">" } } },
-        splitTokens(source, b, e),
+        splitTokens(source, b, e - 1),
         { { kind = "text", offset = -1, limit = -1, lines = { "</a>" } } }
       )
     else
@@ -566,14 +515,36 @@ local transform = {
     end
   end,
   E = function(source, offset, limit)
-    -- escape
     _, offset, limit, _ = findInline(source, offset, limit)
-    arg = source:sub(offset, limit)
+    local arg = source:sub(offset, limit)
     return {
       { kind = "text", offset = -1, limit = -1, lines = { "&" .. arg .. ";" } }
     }
   end
 }
+
+
+local function process(source)
+  local elements = splitParagraphs(source)
+  local i = 1
+  while i <= #elements do
+    local element = elements[i]
+    if element.kind == "text" then
+      i = i + 1
+    else
+      elements = append(
+        slice(elements, 1, i - 1),
+        transform[element.kind](source, element.offset, element.limit),
+        slice(elements, i + 1)
+      )
+    end
+  end
+  for _, element in ipairs(elements) do
+    for _, line in ipairs(element.lines) do
+      print(line)
+    end
+  end
+end
 
 
 M.splitLines = splitLines
