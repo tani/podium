@@ -1,0 +1,78 @@
+=head1 Plain Old Documentation Parser and Tools
+
+=head2 Description
+
+This is a parser and tools for Plain Old Documentation (POD).
+
+=head2 Features
+
+POD parser provides a convenient way to write documentation and comes with the
+following features:
+
+=over
+
+=item * Easy-to-read syntax
+
+=item * Multiple output formats (HTML, Markdown, Vim, and plain text)
+
+=item * Command line interface for simple conversion
+
+=item * Extensible for integration into other projects
+
+=back
+
+To get started using POD, simply install the required dependencies and follow
+the usage instructions provided in the subsequent sections.
+
+=head2 Installation
+
+=head3 Using LuaRocks
+
+  $ luarocks install pod
+
+=head3 Manual Installation
+
+  $ wget https://raw.githubusercontent.com/tani/pod/main/pod.lua
+  $ chmod +x pod.lua
+
+=head2 Usage
+
+=head3 Command Line Interface
+
+  $ pod2html < path/to/file.pod > path/to/file.html
+  $ pod2md < path/to/file.pod > path/to/file.md
+  $ pod2vim < path/to/file.pod > path/to/file.txt
+  $ pod2txt < path/to/file.pod > path/to/file.txt
+
+=head3 Application Programming Interface
+
+  local pod = require('pod')
+
+=head2 Configuration
+
+  $ cat ./.podrc
+  local pod = require('pod')
+  return {
+    C = function(src, i, j)
+      --
+      -- C<z> is C<x * x + y * y>
+      --
+      local arg = pod.arg(src, i, j)
+      return '<code class="lang-vim">' .. arg .. '</code>'
+    end,
+    code = function(src, i, j)
+      -- =block code
+      -- let z = x * x + y * y
+      -- =end code
+      local arg = pod.body(src, i, j)
+      return '<pre><code class="lang-vim">' .. arg .. '</code></pre>'
+    end
+  }
+  $ pod2html < path/to/file.pod > path/to/file.html
+
+=head2 License
+
+Licensed under MIT License.
+
+Copyright (c) 2022 TANIGUCHI Masaya
+
