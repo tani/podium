@@ -345,9 +345,9 @@ describe("POD Parser", function()
     end)
   end)
 
-  describe("splitParts function", function()
+  describe("splitItemParts function", function()
     it("split parts", function()
-      local actual = pod.splitParts(unindent[[
+      local actual = pod.splitItemParts(unindent[[
         =item foo bar]])
       local expected = {
         {
@@ -362,7 +362,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("split parts with begin - end", function()
-      local actual = pod.splitParts(unindent[[
+      local actual = pod.splitItemParts(unindent[[
         =item foo
         bar
         =over
@@ -396,6 +396,54 @@ describe("POD Parser", function()
           },
           offset = 34,
           limit = 37,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+  end)
+  describe("splitTokens function", function()
+    it("split tokens without cmd", function()
+      local actual = pod.splitTokens(unindent[[
+        foo bar]])
+      local expected = {
+        {
+          kind = "text",
+          lines = {
+            "foo bar",
+          },
+          offset = 1,
+          limit = 7,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+    it("split tokens with cmd", function()
+      local actual = pod.splitTokens(unindent[[
+        foo bar C<hoge> huga]])
+      local expected = {
+        {
+          kind = "text",
+          lines = {
+            "foo bar ",
+          },
+          offset = 1,
+          limit = 8,
+        },
+        {
+          kind = "cmd",
+          lines = {
+            "C<hoge>",
+          },
+          offset = 9,
+          limit = 15,
+        },
+        {
+          kind = "text",
+          lines = {
+            " huga",
+          },
+          offset = 16,
+          limit = 20,
         },
       }
       assert.are.same(expected, actual)
