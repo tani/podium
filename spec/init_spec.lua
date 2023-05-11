@@ -1,6 +1,6 @@
-local pod = require './pod'
+local pod = require './podium'
 
-function unindent(str)
+local function unindent(str)
   local lines = pod.splitLines(str)
   local indent = lines[1]:match("^%s*")
   for i, line in ipairs(lines) do
@@ -87,15 +87,16 @@ describe("POD Parser", function()
             "=back\n", "\n",
           },
           offset = 6,
-          limit = 41,
+          limit = 42,
         },
         {
           kind = "para",
           lines = { "hoge" },
-          offset = 42,
-          limit = 45,
+          offset = 43,
+          limit = 46,
         },
       }
+      assert.are.same(expected, actual)
     end)
     it("splits paragraphs by nested over-back block", function()
       local actual = pod.splitParagraphs(unindent[[
@@ -135,15 +136,16 @@ describe("POD Parser", function()
             "=back\n", "\n",
           },
           offset = 6,
-          limit = 61,
+          limit = 68,
         },
         {
           kind = "para",
           lines = { "fuga" },
-          offset = 62,
-          limit = 65,
+          offset = 69,
+          limit = 72,
         },
       }
+      assert.are.same(expected, actual)
     end)
     it("splits paragraphs by begin-end block", function()
       local actual = pod.splitParagraphs(unindent[[
@@ -171,15 +173,16 @@ describe("POD Parser", function()
             "=end html\n", "\n",
           },
           offset = 6,
-          limit = 31,
+          limit = 41,
         },
         {
           kind = "para",
           lines = { "bar" },
-          offset = 32,
-          limit = 34,
+          offset = 42,
+          limit = 44,
         },
       }
+      assert.are.same(expected, actual)
     end)
     it("does not split lines with no empty line", function()
       local actual = pod.splitParagraphs("foo\nbar\nbazz")
@@ -308,40 +311,33 @@ describe("POD Parser", function()
         {
           kind = "item",
           lines = {
-            "=item foo\n",
-            "\n",
-          },
-          offset = 7,
-          limit = 17,
-        },
-        {
-          kind = "over",
-          lines = {
+            "=item foo\n", "\n",
             "=over\n",
             "=item bar\n", "\n",
             "=item bazz\n",
             "=back\n", "\n",
           },
-          offset = 18,
-          limit = 56,
+          offset = 7,
+          limit = 52,
         },
         {
           kind = "item",
           lines = {
             "=item hoge\n",
           },
-          offset = 57,
-          limit = 67,
+          offset = 53,
+          limit = 63,
         },
         {
           kind = "back",
           lines = {
             "=back",
           },
-          offset = 68,
-          limit = 72,
+          offset = 64,
+          limit = 68,
         },
       }
+      assert.are.same(expected, actual)
     end)
   end)
 
@@ -430,7 +426,7 @@ describe("POD Parser", function()
           limit = 8,
         },
         {
-          kind = "cmd",
+          kind = "C",
           lines = {
             "C<hoge>",
           },

@@ -281,8 +281,8 @@ local function splitItems(source, offset, limit)
       else
         table.insert(lines, line)
       end
-    elseif state >= 1 then
-      if line:match("^=item") then
+    else
+      if state == 1 and line:match("^=item") then
         table.insert(items, { kind = "item", lines = lines })
         lines = { line }
       elseif line:match("^=over") then
@@ -320,7 +320,7 @@ local function splitTokens(source, offset, limit)
   local tokens = {}
   local i = offset
   while i <= limit do
-    local b_cmd, b_arg, e_arg, e_cmd = findInline(source, i, limit)
+    local b_cmd, _, _, e_cmd = findInline(source, i, limit)
     if b_cmd then
       table.insert(tokens, {
         kind = "text",
@@ -330,8 +330,8 @@ local function splitTokens(source, offset, limit)
       })
       table.insert(tokens, {
         kind = source:sub(b_cmd, b_cmd),
-        offset = b_arg,
-        limit = e_arg,
+        offset = b_cmd,
+        limit = e_cmd,
         lines = splitLines(source, b_cmd, e_cmd)
       })
       i = e_cmd + 1
