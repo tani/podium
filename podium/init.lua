@@ -374,7 +374,7 @@ local function append(t, ...)
 end
 
 
-local transform = {
+local html = {
   head1 = function(source, offset, limit)
     offset = source:find("%s", offset, limit)
     return append(
@@ -477,12 +477,20 @@ local transform = {
   part = function(source, offset, limit)
     return splitTokens(source, offset, limit)
   end,
+  I = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "<em>" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "</em>" } } }
+    )
+  end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { "<b>" } } },
+      { { kind = "text", offset = -1, limit = -1, lines = { "<strong>" } } },
       splitTokens(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</b>" } } }
+      { { kind = "text", offset = -1, limit = -1, lines = { "</strong>" } } }
     )
   end,
   C = function(source, offset, limit)
@@ -520,11 +528,187 @@ local transform = {
     return {
       { kind = "text", offset = -1, limit = -1, lines = { "&" .. arg .. ";" } }
     }
+  end,
+  X = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "<a name=\"" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "\"></a>" } } }
+    )
+  end,
+  Z = function(_source, _offset, _limit)
+    return {}
+  end,
+}
+
+local list_indent = 0
+local markdown = {
+  head1 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "# " } } },
+      splitTokens(source, offset, limit)
+    )
+  end,
+  head2 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "## " } } },
+      splitTokens(source, offset, limit)
+    )
+  end,
+  head3 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "### " } } },
+      splitTokens(source, offset, limit)
+    )
+  end,
+  head4 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "#### " } } },
+      splitTokens(source, offset, limit)
+    )
+  end,
+  para = function(source, offset, limit)
+    return splitTokens(source, offset, limit)
+  end,
+  over = function(_source, _offset, _limit)
+    list_indent = list_indent + 2
+    return {}
+  end,
+  back = function(_source, _offset, _limit)
+    return {}
+  end,
+  cut = function(_source, _offset, _limit)
+    return {}
+  end,
+  pod = function(_source, _offset, _limit)
+    return {}
+  end,
+  verb = function(source, offset, limit)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "```" } },
+      { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
+      { kind = "text", offset = -1, limit = -1, lines = { "```" } }
+    }
+  end,
+  html = function(source, offset, limit)
+    local lines = {}
+    local state = 0
+    for line in splitLines(source, offset, limit) do
+      if state == 0 then
+        if line:match("^=begin") then
+          state = 1
+        elseif line:match("^=end") then
+          state = 0
+        end
+      else
+        table.insert(lines, line)
+      end
+    end
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = lines }
+    }
+  end,
+  item = function(source, offset, limit)
+    _, offset = source:find("=item%s+[*0-9]*%.?.", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { string.rep(" ", list_indent - 2), "- " } } },
+      splitItemParts(source, offset, limit)
+    )
+  end,
+  ["for"] = function(source, offset, limit)
+    _, offset = source:find("=for%s+%S+%s", offset, limit)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "```" } },
+      { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
+      { kind = "text", offset = -1, limit = -1, lines = { "```" } }
+    }
+  end,
+  list = function(source, offset, limit)
+    return splitItems(source, offset, limit)
+  end,
+  part = function(source, offset, limit)
+    return splitTokens(source, offset, limit)
+  end,
+  I = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "*" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "*" } } }
+    )
+  end,
+  B = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "**" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "**" } } }
+    )
+  end,
+  C = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "`" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "`" } } }
+    )
+  end,
+  L = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    local b, e = source:find("[^|]*|", offset, limit)
+    if b then
+      return append(
+        { { kind = "text", offset = -1, limit = -1, lines = { "[" } } },
+        splitTokens(source, b, e - 1),
+        { { kind = "text", offset = -1, limit = -1, lines = { "](" } } },
+        splitTokens(source, e + 1, limit),
+        { { kind = "text", offset = -1, limit = -1, lines = { ")" } } }
+      )
+    else
+      return {
+        { { kind = "text", offset = -1, limit = -1, lines = { "[" } } },
+        splitTokens(source, offset, limit),
+        { { kind = "text", offset = -1, limit = -1, lines = { "](" } } },
+        splitTokens(source, offset, limit),
+        { kind = "text", offset = -1, limit = -1, lines = { ")" } }
+      }
+    end
+  end,
+  E = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    if source:sub(offset, limit) == "lt" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "<" } }
+      }
+    elseif source:sub(offset, limit) == "gt" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { ">" } }
+      }
+    elseif source:sub(offset, limit) == "verbar" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "|" } }
+      }
+    elseif source:sub(offset, limit) == "sol" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "/" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "&" .. source:sub(offset, limit) .. ";" } }
+      }
+    end
+  end,
+  Z = function(_source, _offset, _limit)
+    return {}
   end
 }
 
-
-local function process(source)
+local function process(source, target)
   local elements = splitParagraphs(source)
   local i = 1
   while i <= #elements do
@@ -534,7 +718,7 @@ local function process(source)
     else
       elements = append(
         slice(elements, 1, i - 1),
-        transform[element.kind](source, element.offset, element.limit),
+        target[element.kind](source, element.offset, element.limit),
         slice(elements, i + 1)
       )
     end
@@ -547,6 +731,179 @@ local function process(source)
 end
 
 
+local latex = {
+  head1 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\section{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+    )
+  end,
+  head2 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\subsection{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+    )
+  end,
+  head3 = function(source, offset, limit)
+    offset = source:find("%s", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\subsubsection{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+    )
+  end,
+  para = function(source, offset, limit)
+    return splitTokens(source, offset, limit)
+  end,
+  over = function(_source, _offset, _limit)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "\\begin{itemize}" } }
+    }
+  end,
+  back = function(_source, _offset, _limit)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "\\end{itemize}" } }
+    }
+  end,
+  cut = function(_source, _offset, _limit)
+    return {}
+  end,
+  pod = function(_source, _offset, _limit)
+    return {}
+  end,
+  verb = function(source, offset, limit)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "\\begin{verbatim}" } },
+      { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
+      { kind = "text", offset = -1, limit = -1, lines = { "\\end{verbatim}" } }
+    }
+  end,
+  latex = function(source, offset, limit)
+    local lines = {}
+    local state = 0
+    for line in splitLines(source, offset, limit) do
+      if state == 0 then
+        if line:match("^=begin") then
+          state = 1
+        elseif line:match("^=end") then
+          state = 0
+        end
+      else
+        table.insert(lines, line)
+      end
+    end
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = lines }
+    }
+  end,
+  item = function(source, offset, limit)
+    _, offset = source:find("=item%s+[*0-9]*%.?.", offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\item" } } },
+      splitItemParts(source, offset, limit)
+    )
+  end,
+  ["for"] = function(source, offset, limit)
+    _, offset = source:find("=for%s+%S+%s", offset, limit)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "\\begin{verbatim}" } },
+      { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
+      { kind = "text", offset = -1, limit = -1, lines = { "\\end{verbatim}" } }
+    }
+  end,
+  list = function(source, offset, limit)
+    return splitItems(source, offset, limit)
+  end,
+  part = function(source, offset, limit)
+    return splitTokens(source, offset, limit)
+  end,
+  I = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\textit{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+    )
+  end,
+  B = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\textbf{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+    )
+  end,
+  C = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\verb|" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "|" } } }
+    )
+  end,
+  L = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    local b, e = source:find("[^|]*|", offset, limit)
+    if b then
+      return append(
+        { { kind = "text", offset = -1, limit = -1, lines = { "\\href{" } } },
+        splitTokens(source, e + 1, limit),
+        { { kind = "text", offset = -1, limit = -1, lines = { "}{" } } },
+        splitTokens(source, b, e - 1),
+        { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+      )
+    else
+      return {
+        { { kind = "text", offset = -1, limit = -1, lines = { "\\url{" } } },
+        splitTokens(source, offset, limit),
+        { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+      }
+    end
+  end,
+  E = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    if source:sub(offset, limit) == "lt" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "<" } }
+      }
+    elseif source:sub(offset, limit) == "gt" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { ">" } }
+      }
+    elseif source:sub(offset, limit) == "verbar" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "|" } }
+      }
+    elseif source:sub(offset, limit) == "sol" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "/" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "\\texttt{" } },
+        splitTokens(source, offset, limit),
+        { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+      }
+    end
+  end,
+  X = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "\\label{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
+    )
+  end,
+  Z = function(_source, _offset, _limit)
+    return {}
+  end
+}
+
+
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
 M.splitItemParts = splitItemParts
@@ -554,7 +911,9 @@ M.splitItems = splitItems
 M.findInline = findInline
 M.splitTokens = splitTokens
 M.process = process
-M.transform = transform
+M.html = html
+M.markdown = markdown
+M.latex = latex
 
 
 return M
