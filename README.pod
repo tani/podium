@@ -1,4 +1,4 @@
-=head1 Plain Old Documentation Parser and Tools
+=head1 PODium
 
 =head2 Description
 
