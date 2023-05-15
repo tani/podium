@@ -2,7 +2,7 @@
 
 =head2 Description
 
-This is a parser and tools for Plain Old Documentation (POD).
+This is a parser and tools for L<Plain Old Documentation (POD)|https://perldoc.perl.org/perlpod>.
 
 =head2 Features
 
@@ -13,7 +13,7 @@ following features:
 
 =item * Easy-to-read syntax
 
-=item * Multiple output formats (HTML, Markdown, Vim, and plain text)
+=item * Multiple output formats (HTML, Markdown, LaTeX)
 
 =item * Command line interface for simple conversion
 
