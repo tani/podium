@@ -1,7 +1,7 @@
 #!/usr/bin/env lua
 
 local M = {}
-local _ = nil -- dummy
+local _ -- dummy
 
 local function guessNewline(source)
   local i = 1
@@ -961,9 +961,20 @@ M.latex = latex
 
 
 if arg[0]:match('podium') then
-  local input = io.read("*a")
+  local input
+  if arg[2] then
+    local ifile = io.open(arg[2], "r")
+    input = ifile:read("*a")
+  else
+    input = io.read("*a")
+  end
   local output = M.process(input, M[arg[1]])
-  print(output)
+  if arg[3] then
+    local ofile = io.open(arg[3], "w")
+    ofile:write(output)
+  else
+    io.write(output)
+  end
 end
 
 
