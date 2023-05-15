@@ -948,6 +948,23 @@ local latex = {
 }
 
 
+function M.arg(source, offset, limit)
+  local _, b, e, _ = findInline(source, offset, limit)
+  if b then
+    return source:sub(b, e)
+  else
+    return ""
+  end
+end
+
+function M.body(source, offset, limit)
+  local nl = guessNewline(source)
+  local _, e = source:sub(1, limit):find("^=begin.*" .. nl, offset)
+  local _, f = source:sub(1, limit):find(nl .. "=end.*$", offset)
+  return source:sub(e + 1, f - 1)
+end
+
+
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
 M.splitItemParts = splitItemParts
