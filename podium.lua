@@ -472,15 +472,38 @@ local html = {
       { { kind = "text", offset = -1, limit = -1, lines = { "</p>\n" } } }
     )
   end,
-  over = function(_source, _offset, _limit)
-    return {
-      { kind = "text", offset = -1, limit = -1, lines = { "<ul>\n" } }
-    }
+  over = function(source, offset, _limit)
+    local _, i = source:find("=item%s*.", offset)
+    if source:sub(i, i):match("[0-9]") then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "<ol>\n" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "<ul>\n" } }
+      }
+    end
   end,
-  back = function(_source, _offset, _limit)
-    return {
-      { kind = "text", offset = -1, limit = -1, lines = { "</ul>\n" } }
-    }
+  back = function(source, offset, _limit)
+    local i = offset
+    while i > 0 do
+      local _, j = source:find("=item%s*.", i - 1)
+      if j then
+        i = j
+        break
+      else
+        i = i - 1
+      end
+    end
+    if source:sub(i, i):match("[0-9]") then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "</ol>\n" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "</ul>\n" } }
+      }
+    end
   end,
   cut = function(_source, _offset, _limit)
     return {}
@@ -797,15 +820,38 @@ local latex = {
   para = function(source, offset, limit)
     return splitTokens(removeNewline(source, offset, limit), offset, limit)
   end,
-  over = function(_source, _offset, _limit)
-    return {
-      { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{itemize}" } }
-    }
+  over = function(source, offset, _limit)
+    local _, i = source:find("=item%s*.", offset)
+    if source:sub(i, i):match("[0-9]")  then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{enumerate}" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{itemize}" } }
+      }
+    end
   end,
-  back = function(_source, _offset, _limit)
-    return {
-      { kind = "text", offset = -1, limit = -1, lines = { "\n\\end{itemize}\n" } }
-    }
+  back = function(source, offset, _limit)
+    local i = offset
+    while i > 0 do
+      local _, j = source:find("=item%s*.", i - 1)
+      if j then
+        i = j
+        break
+      else
+        i = i - 1
+      end
+    end
+    if source:sub(i, i):match("[0-9]") then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "\n\\end{enumerate}\n" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "\n\\end{itemize}\n" } }
+      }
+    end
   end,
   cut = function(_source, _offset, _limit)
     return {}
@@ -957,6 +1003,7 @@ function M.arg(source, offset, limit)
   end
 end
 
+
 function M.body(source, offset, limit)
   local nl = guessNewline(source)
   local _, e = source:sub(1, limit):find("^=begin.*" .. nl, offset)
@@ -975,6 +1022,11 @@ M.process = process
 M.html = html
 M.markdown = markdown
 M.latex = latex
+
+
+package.preload["podium"] = function()
+  return M
+end
 
 
 if arg[0]:match('podium') then
