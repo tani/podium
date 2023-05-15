@@ -26,12 +26,6 @@ the usage instructions provided in the subsequent sections.
 
 =head2 Installation
 
-=head3 Using LuaRocks
-
-  $ luarocks install pod
-
-=head3 Manual Installation
-
   $ wget https://raw.githubusercontent.com/tani/podium/main/podium.lua
   $ chmod +x podium.lua
 
