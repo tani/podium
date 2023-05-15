@@ -21,7 +21,7 @@ following features:
 
 =back
 
-To get started using POD, simply install the required dependencies and follow
+To get started using POD, simply download a file and follow
 the usage instructions provided in the subsequent sections.
 
 =head2 Installation
@@ -33,7 +33,7 @@ the usage instructions provided in the subsequent sections.
 =head3 Manual Installation
 
   $ wget https://raw.githubusercontent.com/tani/podium/main/podium.lua
-  $ chmod +x podum.lua
+  $ chmod +x podium.lua
 
 =head2 Usage
 
