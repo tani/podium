@@ -1,9 +1,0 @@
-#!/usr/bin/env lua
-
-local podium = require "podium"
-
--- Get first argument from command line
--- Read html file from standard input
-local input = io.read("*a")
-local output = podium.process(input, podium[arg[1]])
-print(output)

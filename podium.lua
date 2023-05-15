@@ -1,4 +1,4 @@
--- processr of plain old documentation (POD) format.
+#!/usr/bin/env lua
 
 local M = {}
 local _ = nil -- dummy
@@ -255,6 +255,8 @@ end
 
 
 local function splitItemParts(source, offset, limit)
+  offset = offset or 1
+  limit = limit or #source
   local lines = {}
   local state = 0
   local parts = {}
@@ -956,6 +958,13 @@ M.process = process
 M.html = html
 M.markdown = markdown
 M.latex = latex
+
+
+if arg[0]:match('podium') then
+  local input = io.read("*a")
+  local output = M.process(input, M[arg[1]])
+  print(output)
+end
 
 
 return M
