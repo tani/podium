@@ -32,43 +32,25 @@ the usage instructions provided in the subsequent sections.
 
 =head3 Manual Installation
 
-  $ wget https://raw.githubusercontent.com/tani/pod/main/pod.lua
-  $ chmod +x pod.lua
+  $ wget https://raw.githubusercontent.com/tani/podium/main/podium.lua
+  $ chmod +x podum.lua
 
 =head2 Usage
 
 =head3 Command Line Interface
 
-  $ pod2html < path/to/file.pod > path/to/file.html
-  $ pod2md < path/to/file.pod > path/to/file.md
-  $ pod2vim < path/to/file.pod > path/to/file.txt
-  $ pod2txt < path/to/file.pod > path/to/file.txt
+  $ podium.lua markdown path/to/file.pod path/to/file.md # write markdown
+  $ podium.lua latex path/to/file.pod path/to/file.tex # write latex
+  $ podium.lua html path/to/file.pod path/to/file.html # write html
+  $ podium.lua html path/to/file.pod > path/to/file.html # wirte html to stdout
+  $ podium.lua html < path/to/file.pod > path/to/file.html # write html to stdout, read pod from stdin
 
 =head3 Application Programming Interface
 
-  local pod = require('pod')
-
-=head2 Configuration
-
-  $ cat ./.podrc
-  local pod = require('pod')
-  return {
-    C = function(src, i, j)
-      --
-      -- C<z> is C<x * x + y * y>
-      --
-      local arg = pod.arg(src, i, j)
-      return '<code class="lang-vim">' .. arg .. '</code>'
-    end,
-    code = function(src, i, j)
-      -- =block code
-      -- let z = x * x + y * y
-      -- =end code
-      local arg = pod.body(src, i, j)
-      return '<pre><code class="lang-vim">' .. arg .. '</code></pre>'
-    end
-  }
-  $ pod2html < path/to/file.pod > path/to/file.html
+  local podium = require('podium')
+  local inputString = "..."
+  local outputFormat = podium.html -- or podium.markdown, podium.latex
+  podium.process(inputString, outputFormat) -- returns outputString
 
 =head2 License
 
