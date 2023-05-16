@@ -13,7 +13,7 @@ following features:
 
 =item * Easy-to-read syntax
 
-=item * Multiple output formats (HTML, Markdown, LaTeX)
+=item * Multiple output formats (HTML, Markdown, LaTeX, Vimdoc)
 
 =item * Command line interface for simple conversion
 
@@ -33,9 +33,11 @@ the usage instructions provided in the subsequent sections.
 
 =head3 Command Line Interface
 
-  $ podium.lua markdown path/to/file.pod path/to/file.md # write markdown
-  $ podium.lua latex path/to/file.pod path/to/file.tex # write latex
-  $ podium.lua html path/to/file.pod path/to/file.html # write html
+  $ podium.lua markdown path/to/file.pod path/to/file.md   # write markdown
+  $ podium.lua latex    path/to/file.pod path/to/file.tex  # write latex
+  $ podium.lua vimdoc   path/to/file.pod path/to/file.txt  # write vimdoc
+  $ podium.lua html     path/to/file.pod path/to/file.html # write html
+
   $ podium.lua html path/to/file.pod > path/to/file.html # wirte html to stdout
   $ podium.lua html < path/to/file.pod > path/to/file.html # write html to stdout, read pod from stdin
 
