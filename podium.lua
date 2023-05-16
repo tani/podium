@@ -21,20 +21,28 @@ local function guessNewline(source)
   return '\n'
 end
 
-local function removeNewline(source, offset, limit)
+local function trimBlank(source, offset, limit)
+  -- remove leading blank spaces and tailing blank spaces
+  -- and return the new source with the new offset and limit
   offset = offset or 1
   limit = limit or #source
   local i = offset
   while i <= limit do
-    local c = source:sub(i, i)
-    if c == '\n' then
-      source = source:sub(1, i - 1) .. ' ' .. source:sub(i + 1)
-    elseif c == '\r' then
-      source = source:sub(1, i - 1) .. ' ' .. source:sub(i + 1)
+    if source:sub(i, i):match("%s") then
+      i = i + 1
+    else
+      break
     end
-    i = i + 1
   end
-  return source
+  local j = limit
+  while j >= i do
+    if source:sub(j, j):match("%s") then
+      j = j - 1
+    else
+      break
+    end
+  end
+  return i, j
 end
 
 local function splitLines(source, offset, limit)
@@ -434,57 +442,69 @@ end
 
 local html = {
   head1 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<h1>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</h1>\n" } } }
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "</h1>", nl } } }
     )
   end,
   head2 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<h2>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</h2>\n" } } }
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "</h2>", nl } } }
     )
   end,
   head3 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<h3>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</h3>\n" } } }
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "</h3>", nl } } }
     )
   end,
   head4 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<h4>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</h4>\n" } } }
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "</h4>", nl } } }
     )
   end,
   para = function(source, offset, limit)
+    local nl = guessNewline(source)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<p>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</p>\n" } } }
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "</p>", nl } } }
     )
   end,
   over = function(source, offset, _limit)
+    local nl = guessNewline(source)
     local _, i = source:find("=item%s*.", offset)
     if source:sub(i, i):match("[0-9]") then
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "<ol>\n" } }
+        { kind = "text", offset = -1, limit = -1, lines = { "<ol>", nl } }
       }
     else
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "<ul>\n" } }
+        { kind = "text", offset = -1, limit = -1, lines = { "<ul>", nl } }
       }
     end
   end,
   back = function(source, offset, _limit)
+    local nl = guessNewline(source)
     local i = offset
     while i > 0 do
       local _, j = source:find("=item%s*.", i - 1)
@@ -497,11 +517,11 @@ local html = {
     end
     if source:sub(i, i):match("[0-9]") then
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "</ol>\n" } }
+        { kind = "text", offset = -1, limit = -1, lines = { "</ol>", nl } }
       }
     else
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "</ul>\n" } }
+        { kind = "text", offset = -1, limit = -1, lines = { "</ul>", nl } }
       }
     end
   end,
@@ -512,10 +532,11 @@ local html = {
     return {}
   end,
   verb = function(source, offset, limit)
+    local nl = guessNewline(source)
     return {
-      { kind = "text", offset = -1, limit = -1, lines = { "<pre><code>\n" } },
+      { kind = "text", offset = -1, limit = -1, lines = { "<pre><code>", nl } },
       { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
-      { kind = "text", offset = -1, limit = -1, lines = { "</code></pre>\n" } }
+      { kind = "text", offset = -1, limit = -1, lines = { "</code></pre>", nl } }
     }
   end,
   html = function(source, offset, limit)
@@ -537,74 +558,82 @@ local html = {
     }
   end,
   item = function(source, offset, limit)
+    local nl = guessNewline(source)
     _, offset = source:sub(1,  limit):find("^=item%s*[*0-9]*%.?.", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<li>" } } },
       splitItemParts(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "</li>\n" } } }
+      { { kind = "text", offset = -1, limit = -1, lines = { "</li>", nl } } }
     )
   end,
   ["for"] = function(source, offset, limit)
+    local nl = guessNewline(source)
     _, offset = source:sub(1,  limit):find("=for%s+%S+%s", offset)
     return {
-      { kind = "text", offset = -1, limit = -1, lines = { "<pre><code>\n" } },
+      { kind = "text", offset = -1, limit = -1, lines = { "<pre><code>", nl } },
       { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
-      { kind = "text", offset = -1, limit = -1, lines = { "</code></pre>\n" } }
+      { kind = "text", offset = -1, limit = -1, lines = { "</code></pre>", nl } }
     }
   end,
   list = function(source, offset, limit)
     return splitItems(source, offset, limit)
   end,
   part = function(source, offset, limit)
-    return splitTokens(removeNewline(source, offset, limit), offset, limit)
+    return splitTokens(source, offset, limit)
   end,
   I = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<em>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "</em>" } } }
     )
   end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<strong>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "</strong>" } } }
     )
   end,
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<code>" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "</code>" } } }
     )
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     local b, e = source:sub(1,  limit):find("[^|]*|", offset)
     if b then
       return append(
         { { kind = "text", offset = -1, limit = -1, lines = { "<a href=\"" } } },
-        splitTokens(removeNewline(source, offset, limit), e + 1, limit),
+        splitTokens(source, e + 1, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "\">" } } },
-        splitTokens(removeNewline(source, offset, limit), b, e - 1),
+        splitTokens(source, b, e - 1),
         { { kind = "text", offset = -1, limit = -1, lines = { "</a>" } } }
       )
     else
       return {
         { { kind = "text", offset = -1, limit = -1, lines = { "<a href=\"" } } },
-        splitTokens(removeNewline(source, offset, limit), offset, limit),
+        splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "\">" } } },
-        splitTokens(removeNewline(source, offset, limit), offset, limit),
+        splitTokens(source, offset, limit),
         { kind = "text", offset = -1, limit = -1, lines = { "</a>" } }
       }
     end
   end,
   E = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     local arg = source:sub(offset, limit)
     return {
       { kind = "text", offset = -1, limit = -1, lines = { "&" .. arg .. ";" } }
@@ -612,9 +641,10 @@ local html = {
   end,
   X = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "<a name=\"" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "\"></a>" } } }
     )
   end,
@@ -623,44 +653,62 @@ local html = {
   end,
 }
 
-local list_indent = 0
+local markdown_list_indent = 0
 local markdown = {
   head1 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "# " } } },
-      splitTokens(source, offset, limit)
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   head2 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "## " } } },
-      splitTokens(source, offset, limit)
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   head3 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "### " } } },
-      splitTokens(source, offset, limit)
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   head4 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "#### " } } },
-      splitTokens(source, offset, limit)
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   para = function(source, offset, limit)
-    return splitTokens(source, offset, limit)
+    local nl = guessNewline(source)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
+    )
   end,
   over = function(_source, _offset, _limit)
-    list_indent = list_indent + 2
+    markdown_list_indent = markdown_list_indent + 2
     return {}
   end,
   back = function(_source, _offset, _limit)
+    markdown_list_indent = markdown_list_indent - 2
     return {}
   end,
   cut = function(_source, _offset, _limit)
@@ -672,9 +720,9 @@ local markdown = {
   verb = function(source, offset, limit)
     local nl = guessNewline(source)
     return {
-      { kind = "text", offset = -1, limit = -1, lines = { "```" .. nl } },
+      { kind = "text", offset = -1, limit = -1, lines = { "```", nl } },
       { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
-      { kind = "text", offset = -1, limit = -1, lines = { "```" .. nl } }
+      { kind = "text", offset = -1, limit = -1, lines = { "```", nl, nl } }
     }
   end,
   html = function(source, offset, limit)
@@ -696,19 +744,27 @@ local markdown = {
     }
   end,
   item = function(source, offset, limit)
+    local nl = guessNewline(source)
+    local bullet = "-"
+    if source:sub(1, limit):match("^=item%s*[0-9]") then
+      _, _, bullet = source:sub(1, limit):find("^=item%s*([0-9]+%.?)", offset)
+    end
     _, offset = source:sub(1,  limit):find("^=item%s*[*0-9]*%.?.", offset)
+    offset, limit = trimBlank(source, offset, limit)
+    local indent = string.rep(" ", markdown_list_indent - 2)
     return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { string.rep(" ", list_indent - 2), "- " } } },
-      splitItemParts(source, offset, limit)
+      { { kind = "text", offset = -1, limit = -1, lines = { indent, bullet, " " } } },
+      splitItemParts(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl } } }
     )
   end,
   ["for"] = function(source, offset, limit)
     _, offset = source:sub(1,  limit):find("=for%s+%S+%s", offset)
     local nl = guessNewline(source)
     return {
-      { kind = "text", offset = -1, limit = -1, lines = { "```" .. nl } },
+      { kind = "text", offset = -1, limit = -1, lines = { "```", nl } },
       { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
-      { kind = "text", offset = -1, limit = -1, lines = { "```" .. nl } }
+      { kind = "text", offset = -1, limit = -1, lines = { "```", nl } }
     }
   end,
   list = function(source, offset, limit)
@@ -719,6 +775,7 @@ local markdown = {
   end,
   I = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "*" } } },
       splitTokens(source, offset, limit),
@@ -727,6 +784,7 @@ local markdown = {
   end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "**" } } },
       splitTokens(source, offset, limit),
@@ -735,6 +793,7 @@ local markdown = {
   end,
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "`" } } },
       splitTokens(source, offset, limit),
@@ -743,6 +802,7 @@ local markdown = {
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     local b, e = source:sub(1,  limit):find("[^|]*|", offset)
     if b then
       return append(
@@ -764,6 +824,190 @@ local markdown = {
   end,
   E = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
+    if source:sub(offset, limit) == "lt" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "<" } }
+      }
+    elseif source:sub(offset, limit) == "gt" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { ">" } }
+      }
+    elseif source:sub(offset, limit) == "verbar" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "|" } }
+      }
+    elseif source:sub(offset, limit) == "sol" then
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "/" } }
+      }
+    else
+      return {
+        { kind = "text", offset = -1, limit = -1, lines = { "&" .. source:sub(offset, limit) .. ";" } }
+      }
+    end
+  end,
+  Z = function(_source, _offset, _limit)
+    return {}
+  end
+}
+
+local vimdoc_list_indent = 0
+local vimdoc = {
+  head1 = function(source, offset, limit)
+    local nl = guessNewline(source)
+    offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { string.rep("=", 79), nl } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+    )
+  end,
+  head2 = function(source, offset, limit)
+    local nl = guessNewline(source)
+    offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+    )
+  end,
+  head3 = function(source, offset, limit)
+    local nl = guessNewline(source)
+    offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+    )
+  end,
+  head4 = function(source, offset, limit)
+    local nl = guessNewline(source)
+    offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+    )
+  end,
+  para = function(source, offset, limit)
+    local nl = guessNewline(source)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
+    )
+  end,
+  over = function(_source, _offset, _limit)
+    vimdoc_list_indent = vimdoc_list_indent + 2
+    return {}
+  end,
+  back = function(_source, _offset, _limit)
+    vimdoc_list_indent = vimdoc_list_indent - 2
+    return {}
+  end,
+  cut = function(_source, _offset, _limit)
+    return {}
+  end,
+  pod = function(_source, _offset, _limit)
+    return {}
+  end,
+  verb = function(source, offset, limit)
+    local nl = guessNewline(source)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { ">", nl } },
+      { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
+      { kind = "text", offset = -1, limit = -1, lines = { "<", nl, nl } }
+    }
+  end,
+  vimdoc = function(source, offset, limit)
+    local lines = {}
+    local state = 0
+    for line in splitLines(source, offset, limit) do
+      if state == 0 then
+        if line:match("^=begin") then
+          state = 1
+        elseif line:match("^=end") then
+          state = 0
+        end
+      else
+        table.insert(lines, line)
+      end
+    end
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = lines }
+    }
+  end,
+  item = function(source, offset, limit)
+    local nl = guessNewline(source)
+    local bullet = "-"
+    if source:sub(1, limit):match("^=item%s*[0-9]") then
+      _, _, bullet = source:sub(1, limit):find("^=item%s*([0-9]+%.?)", offset)
+    end
+    _, offset = source:sub(1,  limit):find("^=item%s*[*0-9]*%.?.", offset)
+    offset, limit = trimBlank(source, offset, limit)
+    local indent = string.rep(" ", markdown_list_indent - 2)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { indent, bullet, " " } } },
+      splitItemParts(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl } } }
+    )
+  end,
+  ["for"] = function(source, offset, limit)
+    _, offset = source:sub(1,  limit):find("=for%s+%S+%s", offset)
+    local nl = guessNewline(source)
+    return {
+      { kind = "text", offset = -1, limit = -1, lines = { "<", nl } },
+      { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
+      { kind = "text", offset = -1, limit = -1, lines = { ">", nl, nl } }
+    }
+  end,
+  list = function(source, offset, limit)
+    return splitItems(source, offset, limit)
+  end,
+  part = function(source, offset, limit)
+    return splitTokens(source, offset, limit)
+  end,
+  C = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "`" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "`" } } }
+    )
+  end,
+  O = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "'" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "'" } } }
+    )
+  end,
+  L = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "|" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "|" } } }
+    )
+  end,
+  X = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      { { kind = "text", offset = -1, limit = -1, lines = { "*" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "*" } } }
+    )
+  end,
+  E = function(source, offset, limit)
+    _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     if source:sub(offset, limit) == "lt" then
       return {
         { kind = "text", offset = -1, limit = -1, lines = { "<" } }
@@ -794,45 +1038,58 @@ local markdown = {
 
 local latex = {
   head1 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { "\n\\section{" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "}\n" } } }
+      { { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\section{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}", nl } } }
     )
   end,
   head2 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { "\n\\subsection{" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "}\n" } } }
+      { { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\subsection{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}", nl } } }
     )
   end,
   head3 = function(source, offset, limit)
+    local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { "\n\\subsubsection{" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "}\n" } } }
+      { { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\subsubsection{" } } },
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { "}", nl } } }
     )
   end,
   para = function(source, offset, limit)
-    return splitTokens(removeNewline(source, offset, limit), offset, limit)
+    local nl = guessNewline(source)
+    offset, limit = trimBlank(source, offset, limit)
+    return append(
+      splitTokens(source, offset, limit),
+      { { kind = "text", offset = -1, limit = -1, lines = { nl } } }
+    )
   end,
   over = function(source, offset, _limit)
+    local nl = guessNewline(source)
     local _, i = source:find("=item%s*.", offset)
     if source:sub(i, i):match("[0-9]")  then
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{enumerate}" } }
+        { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\begin{enumerate}" } }
       }
     else
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{itemize}" } }
+        { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\begin{itemize}" } }
       }
     end
   end,
   back = function(source, offset, _limit)
+    local nl = guessNewline(source)
     local i = offset
     while i > 0 do
       local _, j = source:find("=item%s*.", i - 1)
@@ -845,11 +1102,11 @@ local latex = {
     end
     if source:sub(i, i):match("[0-9]") then
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "\n\\end{enumerate}\n" } }
+        { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\end{enumerate}", nl } }
       }
     else
       return {
-        { kind = "text", offset = -1, limit = -1, lines = { "\n\\end{itemize}\n" } }
+        { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\end{itemize}", nl } }
       }
     end
   end,
@@ -860,10 +1117,11 @@ local latex = {
     return {}
   end,
   verb = function(source, offset, limit)
+    local nl = guessNewline(source)
     return {
-      { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{verbatim}\n" } },
+      { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\begin{verbatim}", nl } },
       { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
-      { kind = "text", offset = -1, limit = -1, lines = { "\\end{verbatim}\n" } }
+      { kind = "text", offset = -1, limit = -1, lines = { "\\end{verbatim}", nl } }
     }
   end,
   latex = function(source, offset, limit)
@@ -885,77 +1143,85 @@ local latex = {
     }
   end,
   item = function(source, offset, limit)
+    local nl = guessNewline(source)
     _, offset = source:sub(1,  limit):find("^=item%s*[*0-9]*%.?.", offset)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
-      { { kind = "text", offset = -1, limit = -1, lines = { "\n\\item" } } },
+      { { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\item " } } },
       splitItemParts(source, offset, limit)
     )
   end,
   ["for"] = function(source, offset, limit)
+    local nl = guessNewline(source)
     _, offset = source:sub(1,  limit):find("=for%s+%S+%s", offset)
     return {
-      { kind = "text", offset = -1, limit = -1, lines = { "\n\\begin{verbatim}\n" } },
+      { kind = "text", offset = -1, limit = -1, lines = { nl,  "\\begin{verbatim}", nl } },
       { kind = "text", offset = -1, limit = -1, lines = splitLines(source, offset, limit) },
-      { kind = "text", offset = -1, limit = -1, lines = { "\\end{verbatim}\n" } }
+      { kind = "text", offset = -1, limit = -1, lines = { "\\end{verbatim}", nl } }
     }
   end,
   list = function(source, offset, limit)
     return splitItems(source, offset, limit)
   end,
   part = function(source, offset, limit)
-    return splitTokens(removeNewline(source, offset, limit), offset, limit)
+    return splitTokens(source, offset, limit)
   end,
   I = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "\\textit{" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
     )
   end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "\\textbf{" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
     )
   end,
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "\\verb|" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "|" } } }
     )
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     local b, e = source:sub(1,  limit):find("[^|]*|", offset)
     if b then
       return append(
         { { kind = "text", offset = -1, limit = -1, lines = { "\\href{" } } },
-        splitTokens(removeNewline(source, offset, limit), e + 1, limit),
+        splitTokens(source, e + 1, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "}{" } } },
-        splitTokens(removeNewline(source, offset, limit), b, e - 1),
+        splitTokens(source, b, e - 1),
         { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
       )
     elseif source:sub(offset, limit):match("^https?://") then
       return {
         { { kind = "text", offset = -1, limit = -1, lines = { "\\url{" } } },
-        splitTokens(removeNewline(source, offset, limit), offset, limit),
+        splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
       }
     else
       return {
         { { kind = "text", offset = -1, limit = -1, lines = { "\\ref{" } } },
-        splitTokens(removeNewline(source, offset, limit), offset, limit),
+        splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
       }
     end
   end,
   E = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     if source:sub(offset, limit) == "lt" then
       return {
         { kind = "text", offset = -1, limit = -1, lines = { "<" } }
@@ -975,16 +1241,17 @@ local latex = {
     else
       return {
         { kind = "text", offset = -1, limit = -1, lines = { "\\texttt{" } },
-        splitTokens(removeNewline(source, offset, limit), offset, limit),
+        splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
       }
     end
   end,
   X = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
+    offset, limit = trimBlank(source, offset, limit)
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { "\\label{" } } },
-      splitTokens(removeNewline(source, offset, limit), offset, limit),
+      splitTokens(source, offset, limit),
       { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
     )
   end,
@@ -1022,6 +1289,7 @@ M.process = process
 M.html = html
 M.markdown = markdown
 M.latex = latex
+M.vimdoc = vimdoc
 
 
 package.preload["podium"] = function()
