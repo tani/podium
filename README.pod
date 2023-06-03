@@ -6,7 +6,7 @@ You can try Podium in your browser at L<https://tani.github.io/podium/>.
 
 =head2 Description
 
-This is a parser and tools for L<Plain Old Documentation (POD)|https://perldoc.perl.org/perlpod>.
+This is a parser and tool for L<Plain Old Documentation (POD)|https://perldoc.perl.org/perlpod>.
 
 =head2 Features
 
@@ -25,7 +25,7 @@ following features:
 
 =back
 
-To get started using POD, simply download a file and follow
+To get started using POD, download a file and follow
 the usage instructions provided in the subsequent sections.
 
 =head2 Installation
@@ -50,11 +50,10 @@ the usage instructions provided in the subsequent sections.
   local podium = require('podium')
   local inputString = "..."
   local outputFormat = podium.html -- or podium.markdown, podium.latex
-  podium.process(inputString, outputFormat) -- returns outputString
+  podium.process(inputString, outputFormat) -- returns output string
 
 =head2 License
 
 Licensed under MIT License.
 
 Copyright (c) 2022 TANIGUCHI Masaya
-
