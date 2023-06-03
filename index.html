@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Podium Playground</title>
+    <!-- picnic.css -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic@7.1.0">
+    <script type="module">
+      import fengari from "https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/+esm"
+      let podium = await fetch('podium.lua').then(r => r.text());
+      podium = podium.replace(/^#!.*\n/, ''); // remove shebang
+
+      function process(source, target) {
+        const script = `
+          local SOURCE = [===[${source}]===]
+          local TARGET = [===[${target}]===]
+          ${podium}
+        `
+        return fengari.load(script)();
+      }
+
+      document.querySelector('form').addEventListener('submit', e => {
+        e.preventDefault();
+        const source = document.querySelector('#source').value;
+        const target = document.querySelector('#target').value;
+        const output = process(source, target);
+        document.querySelector('#output').value = output;
+      });
+
+      const readme = await fetch('README.pod').then(r => r.text());
+      document.querySelector('#source').value = readme;
+      document.querySelector('#target').value = 'html';
+      document.querySelector('form').dispatchEvent(new Event('submit'));
+
+      window.addEventListener('resize', () => {
+        //get window height
+        let vh = window.innerHeight - 200;
+        document.querySelector('#source').style.height = vh + 'px';
+        document.querySelector('#output').style.height = vh + 'px';
+      });
+      window.dispatchEvent(new Event('resize'));
+    </script>
+    <style>
+      body {
+        padding-left: 50px;
+        padding-right: 50px;
+      }
+    </style>
+</head>
+<body>
+  <h1>POD Processor <a href="https://github.com/tani/podium">Podium</a>: Playground</h1>
+  <form>
+    <fieldset class="flex two">
+      <label>
+        <select id="target" name="target">
+          <option value="html">HTML</option>
+          <option value="vimdoc">Vimdoc</option>
+          <option value="latex">LaTeX</option>
+          <option value="markdown">Markdown</option>
+        </select>
+      </label>
+      <label>
+        <button type="submit">Submit</button>
+      </label>
+    </fieldset>
+    <fieldset class="flex two">
+      <label><textarea id="source" name="source"></textarea></label>
+      <label><textarea id="output" name="output" disabled></textarea></label>
+    </fieldset>
+  </form>
+</body>

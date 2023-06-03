@@ -1292,6 +1292,11 @@ M.latex = latex
 M.vimdoc = vimdoc
 
 
+if SOURCE and TARGET then
+  return M.process(SOURCE, M[TARGET])
+end
+
+
 package.preload["podium"] = function()
   return M
 end
@@ -1301,6 +1306,9 @@ if arg[0]:match('podium') then
   local input
   if arg[2] then
     local ifile = io.open(arg[2], "r")
+    if not ifile then
+      error("cannot open file: " .. arg[2])
+    end
     input = ifile:read("*a")
   else
     input = io.read("*a")
@@ -1308,6 +1316,9 @@ if arg[0]:match('podium') then
   local output = M.process(input, M[arg[1]])
   if arg[3] then
     local ofile = io.open(arg[3], "w")
+    if not ofile then
+      error("cannot open file: " .. arg[3])
+    end
     ofile:write(output)
   else
     io.write(output)

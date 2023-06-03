@@ -1,4 +1,8 @@
-=head1 PODium
+=head1 Podium
+
+=head2 Playground
+
+You can try Podium in your browser at L<https://tani.github.io/podium/>.
 
 =head2 Description
 
