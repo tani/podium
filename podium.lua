@@ -622,13 +622,13 @@ local html = {
         { { kind = "text", offset = -1, limit = -1, lines = { "</a>" } } }
       )
     else
-      return {
+      return append(
         { { kind = "text", offset = -1, limit = -1, lines = { "<a href=\"" } } },
         splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "\">" } } },
         splitTokens(source, offset, limit),
-        { kind = "text", offset = -1, limit = -1, lines = { "</a>" } }
-      }
+        { { kind = "text", offset = -1, limit = -1, lines = { "</a>" } } }
+      )
     end
   end,
   E = function(source, offset, limit)
@@ -813,13 +813,13 @@ local markdown = {
         { { kind = "text", offset = -1, limit = -1, lines = { ")" } } }
       )
     else
-      return {
+      return append(
         { { kind = "text", offset = -1, limit = -1, lines = { "[" } } },
         splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "](" } } },
         splitTokens(source, offset, limit),
-        { kind = "text", offset = -1, limit = -1, lines = { ")" } }
-      }
+        { { kind = "text", offset = -1, limit = -1, lines = { ")" } } }
+      )
     end
   end,
   E = function(source, offset, limit)
@@ -1206,11 +1206,11 @@ local latex = {
         { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
       )
     elseif source:sub(offset, limit):match("^https?://") then
-      return {
+      return append(
         { { kind = "text", offset = -1, limit = -1, lines = { "\\url{" } } },
         splitTokens(source, offset, limit),
         { { kind = "text", offset = -1, limit = -1, lines = { "}" } } }
-      }
+      )
     else
       return {
         { { kind = "text", offset = -1, limit = -1, lines = { "\\ref{" } } },
