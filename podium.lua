@@ -417,23 +417,41 @@ end
 
 local function process(source, target)
   local elements = splitParagraphs(source)
+  local shouldProcess = false
   local i = 1
   while i <= #elements do
     local element = elements[i]
-    if element.kind == "text" then
-      i = i + 1
+    if element.kind == "pod" then
+      shouldProcess = true
+    end
+    if shouldProcess then
+      if element.kind == "text" then
+        i = i + 1
+      else
+        elements = append(
+          slice(elements, 1, i - 1),
+          target[element.kind](source, element.offset, element.limit),
+          slice(elements, i + 1)
+        )
+      end
     else
       elements = append(
         slice(elements, 1, i - 1),
-        target[element.kind](source, element.offset, element.limit),
+        { { kind = "skip", lines = element.lines, offset = element.offset, limit = element.limit } },
         slice(elements, i + 1)
       )
+      i = i + 1
+    end
+    if element.kind == "cut" then
+      shouldProcess = false
     end
   end
   local output = ""
   for _, element in ipairs(elements) do
-    for _, line in ipairs(element.lines) do
-      output = output .. line
+    if element.kind ~= "skip" then
+      for _, line in ipairs(element.lines) do
+        output = output .. line
+      end
     end
   end
   return output
