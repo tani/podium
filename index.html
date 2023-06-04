@@ -19,24 +19,25 @@
         return fengari.load(script)();
       }
 
-      document.querySelector('form').addEventListener('submit', e => {
-        e.preventDefault();
-        const source = document.querySelector('#source').value;
-        const target = document.querySelector('#target').value;
+      const $ = document.querySelector.bind(document);
+      $('form').addEventListener('submit', event => {
+        event.preventDefault();
+        const source = $('#source').value;
+        const target = $('#target').value;
         const output = process(source, target);
         document.querySelector('#output').value = output;
       });
 
       const readme = await fetch('README.pod').then(r => r.text());
-      document.querySelector('#source').value = readme;
-      document.querySelector('#target').value = 'html';
-      document.querySelector('form').dispatchEvent(new Event('submit'));
+      $('#source').value = readme;
+      $('#target').value = 'html';
+      $('form').dispatchEvent(new Event('submit'));
 
       window.addEventListener('resize', () => {
         //get window height
         let vh = window.innerHeight - 200;
-        document.querySelector('#source').style.height = vh + 'px';
-        document.querySelector('#output').style.height = vh + 'px';
+        $('#source').style.height = vh + 'px';
+        $('#output').style.height = vh + 'px';
       });
       window.dispatchEvent(new Event('resize'));
     </script>
