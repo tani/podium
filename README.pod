@@ -9,7 +9,7 @@ description: POD parser and tool
 
 =head2 Playground
 
-You can try Podium in your browser at L<https://markup.deno.dev/>.
+You can try Podium in your browser at L<https://pod.deno.dev/>.
 
 =head2 Description
 
@@ -44,8 +44,8 @@ the usage instructions provided in the subsequent sections.
 
 =head3 WebAPI
 
-  $ curl -X POST -d `$(cat path/to/file.pod)` https://markup.deno.dev/html
-  $ cat path/to/file.pod | curl -X POST -d @- https://markup.deno.dev/latex
+  $ curl -X POST -d `$(cat path/to/file.pod)` https://pod.deno.dev/html
+  $ cat path/to/file.pod | curl -X POST -d @- https://pod.deno.dev/latex
 
 =head3 Command Line Interface
 
