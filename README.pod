@@ -1,3 +1,8 @@
+---
+name: podium
+description: POD parser and tool
+---
+
 =pod
 
 =head1 Podium
