@@ -44,8 +44,8 @@ the usage instructions provided in the subsequent sections.
 
 =head3 WebAPI
 
-  $ curl -X POST -d `$(cat path/to/file.pod)` https://pod.deno.dev/html
-  $ cat path/to/file.pod | curl -X POST -d @- https://pod.deno.dev/latex
+  $ curl --data-binary `$(cat path/to/file.pod)` https://pod.deno.dev/html
+  $ cat path/to/file.pod | curl --data-binary @- https://pod.deno.dev/latex
 
 =head3 Command Line Interface
 
