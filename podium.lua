@@ -598,7 +598,7 @@ local html = {
   html = function(source, offset, limit)
     local lines = {}
     local state = 0
-    for line in splitLines(source, offset, limit) do
+    for _, line in ipairs(splitLines(source, offset, limit)) do
       if state == 0 then
         if line:match("^=begin") then
           state = 1
