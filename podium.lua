@@ -446,6 +446,11 @@ local function process(source, target)
       shouldProcess = false
     end
   end
+  elements = append(
+    target['preamble'](source, 1, #source),
+    elements,
+    target['postamble'](source, 1, #source)
+  )
   local output = ""
   for _, element in ipairs(elements) do
     if element.kind ~= "skip" then
@@ -459,6 +464,12 @@ end
 
 
 local html = {
+  preamble = function(_source, _offset, _limit)
+    return {}
+  end,
+  postamble = function(_source, _offset, _limit)
+    return {}
+  end,
   head1 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
@@ -673,6 +684,12 @@ local html = {
 
 local markdown_list_indent = 0
 local markdown = {
+  preamble = function(_source, _offset, _limit)
+    return {}
+  end,
+  postamble = function(_source, _offset, _limit)
+    return {}
+  end,
   head1 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
@@ -872,6 +889,12 @@ local markdown = {
 
 local vimdoc_list_indent = 0
 local vimdoc = {
+  preamble = function(_source, _offset, _limit)
+    return {}
+  end,
+  postamble = function(_source, _offset, _limit)
+    return {}
+  end,
   head1 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
@@ -1055,6 +1078,12 @@ local vimdoc = {
 
 
 local latex = {
+  preamble = function(_source, _offset, _limit)
+    return {}
+  end,
+  postamble = function(_source, _offset, _limit)
+    return {}
+  end,
   head1 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
