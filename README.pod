@@ -7,16 +7,6 @@ description: POD parser and tool
 
 =head1 Podium
 
-=begin html
-
-<p align="center">
-  <a href="https://openclipart.org/detail/213235/podium-icon-by-simpleicons">
-    <img width="200" src="https://openclipart.org/download/213235/Podium-icon.svg">
-  </a>
-</p>
-
-=end html
-
 =head2 Playground
 
 You can try Podium in your browser at L<https://pod.deno.dev/>.
