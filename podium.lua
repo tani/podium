@@ -769,7 +769,7 @@ local markdown = {
     markdown_list_level = markdown_list_level + 2
     return {}
   end,
-  back = function(_source, _offset, _limit)
+  back = function(source, _offset, _limit)
     markdown_list_level = markdown_list_level - 2
     local nl = guessNewline(source)
     return {
