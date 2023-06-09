@@ -20,8 +20,7 @@
       }
 
       const $ = document.querySelector.bind(document);
-      $('form').addEventListener('submit', event => {
-        event.preventDefault();
+      $('#convert').addEventListener('click', event => {
         const source = $('#source').value;
         const target = $('#target').value;
         const output = process(source, target);
@@ -31,7 +30,7 @@
       const readme = await fetch('README.pod').then(r => r.text());
       $('#source').value = readme;
       $('#target').value = 'html';
-      $('form').dispatchEvent(new Event('submit'));
+      $('#convert').click();
 
       window.addEventListener('resize', () => {
         //get window height
@@ -50,8 +49,8 @@
 </head>
 <body>
   <h1>POD Processor <a href="https://github.com/tani/podium">Podium</a>: Playground</h1>
-  <form>
-    <fieldset class="flex two">
+  <div>
+    <div class="flex two">
       <label>
         <select id="target" name="target">
           <option value="html">HTML</option>
@@ -61,12 +60,12 @@
         </select>
       </label>
       <label>
-        <button type="submit">Submit</button>
+        <button id="convert">Convert</button>
       </label>
-    </fieldset>
-    <fieldset class="flex two">
+    </div>
+    <div class="flex two">
       <label><textarea id="source" name="source"></textarea></label>
       <label><textarea id="output" name="output" disabled></textarea></label>
-    </fieldset>
-  </form>
+    </div >
+  </div>
 </body>
