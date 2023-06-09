@@ -69,6 +69,30 @@ local function splitLines(source, offset, limit)
 end
 
 
+local function parseFrontMatter(source)
+  local frontmatter = {}
+  local lines = splitLines(source)
+  local inside = false
+  for _, line in ipairs(lines) do
+    if inside then
+      if line:match("^%s*---%s*$") then
+        break
+      else
+        local key, value = line:match("^%s*(%w-)%s*:%s*(.-)%s*$")
+        if key then
+          frontmatter[key] = value
+        end
+      end
+    else
+      if line:match("^%s*---%s*$") then
+        inside = true
+      end
+    end
+  end
+  return frontmatter
+end
+
+
 local function offsetToRowCol(source, offset)
   local row = 1
   local col = 1
@@ -889,11 +913,39 @@ local markdown = {
 
 local vimdoc_list_indent = 0
 local vimdoc = {
-  preamble = function(_source, _offset, _limit)
-    return {}
+  preamble = function(source, _offset, _limit)
+    local nl = guessNewline(source)
+    local frontmatter = parseFrontMatter(source)
+    local filename = frontmatter.name .. '.txt'
+    local description = frontmatter.description
+    local spaces = string.rep(' ', 78 - #filename - #description - #nl)
+    return {
+      {
+        kind = "text",
+        offset = -1,
+        limit = -1,
+        lines = {
+          filename,
+          spaces,
+          description,
+          nl,
+        }
+      }
+    }
   end,
-  postamble = function(_source, _offset, _limit)
-    return {}
+  postamble = function(source, _offset, _limit)
+    local nl = guessNewline(source)
+    return {
+      {
+        kind = "text",
+        offset = -1,
+        limit = -1,
+        lines = {
+          nl,
+          "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl,
+        }
+      }
+    }
   end,
   head1 = function(source, offset, limit)
     local nl = guessNewline(source)
