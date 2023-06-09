@@ -6,24 +6,14 @@
     <!-- picnic.css -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic@7.1.0">
     <script type="module">
-      import fengari from "https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/+esm"
-      let podium = await fetch('podium.lua').then(r => r.text());
-      podium = podium.replace(/^#!.*\n/, ''); // remove shebang
-
-      function process(source, target) {
-        const script = `
-          local SOURCE = [===[${source}]===]
-          local TARGET = [===[${target}]===]
-          ${podium}
-        `
-        return fengari.load(script)();
-      }
-
       const $ = document.querySelector.bind(document);
       $('#convert').addEventListener('click', async event => {
         const source = $('#source').value;
         const target = $('#target').value;
-        const output = process(source, target);
+        const output = await fetch(target, {
+          method: 'POST',
+          body: source
+        }).then(r => r.text());
         document.querySelector('#output').value = output;
       });
 
