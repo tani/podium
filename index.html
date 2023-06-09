@@ -6,6 +6,10 @@
     <!-- picnic.css -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic@7.1.0">
     <script type="module">
+      function sanitize(text) {
+        return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
       const $ = document.querySelector.bind(document);
       $('#convert').addEventListener('click', async event => {
         const source = $('#source').value;
@@ -14,7 +18,7 @@
           method: 'POST',
           body: source
         }).then(r => r.text());
-        document.querySelector('#output').value = output;
+        document.querySelector('#output > code').innerHTML = sanitize(output);
       });
 
       const readme = await fetch('README.pod').then(r => r.text());
@@ -34,6 +38,10 @@
       body {
         padding-left: 50px;
         padding-right: 50px;
+      }
+      #output {
+        margin: 0;
+        overflow: scroll;
       }
     </style>
 </head>
@@ -55,7 +63,7 @@
     </div>
     <div class="flex two">
       <label><textarea id="source" name="source"></textarea></label>
-      <label><textarea id="output" name="output" disabled></textarea></label>
+      <label><pre id="output"><code></code></pre></label>
     </div >
   </div>
 </body>
