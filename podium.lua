@@ -3,6 +3,19 @@
 local M = {}
 local _ -- dummy
 
+-- luacheck: ignore
+local function debug(t, indent)
+  indent = indent or 0
+  for k, v in pairs(t) do
+    if type(v) == "table" then
+      print(string.rep(" ", indent) .. k .. ":")
+      debug(v, indent + 2)
+    else
+      print(string.rep(" ", indent) .. k .. ": " .. tostring(v))
+    end
+  end
+end
+
 
 local function guessNewline(source)
   local i = 1
