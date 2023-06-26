@@ -970,37 +970,77 @@ local vimdoc = {
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
+    local tokens = splitTokens(source, offset, limit)
+    local tags = {}
+    for i, token in ipairs(tokens) do
+      if token.kind == "X" then
+        table.remove(tokens, i)
+        table.insert(tags, token)
+      end
+    end
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { string.rep("=", 78 - #nl), nl } } },
-      splitTokens(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "~ ", nl, nl } } }
+      tokens,
+      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
+      tags,
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   head2 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
+    local tokens = splitTokens(source, offset, limit)
+    local tags = {}
+    for i, token in ipairs(tokens) do
+      if token.kind == "X" then
+        table.remove(tokens, i)
+        table.insert(tags, token)
+      end
+    end
     return append(
-      splitTokens(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+      tokens,
+      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
+      tags,
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   head3 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
+    local tokens = splitTokens(source, offset, limit)
+    local tags = {}
+    for i, token in ipairs(tokens) do
+      if token.kind == "X" then
+        table.remove(tokens, i)
+        table.insert(tags, token)
+      end
+    end
     return append(
-      splitTokens(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+      tokens,
+      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
+      tags,
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   head4 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1,  limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
+    local tokens = splitTokens(source, offset, limit)
+    local tags = {}
+    for i, token in ipairs(tokens) do
+      if token.kind == "X" then
+        table.remove(tokens, i)
+        table.insert(tags, token)
+      end
+    end
     return append(
-      splitTokens(source, offset, limit),
-      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+      tokens,
+      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
+      tags,
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
     )
   end,
   para = function(source, offset, limit)
