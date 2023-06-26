@@ -941,6 +941,38 @@ local markdown = rules {
   end
 }
 
+
+local function vimdoc_head(source, offset, limit)
+  local nl = guessNewline(source)
+  offset = source:sub(1,  limit):find("%s", offset)
+  _, offset, limit = trimBlank(source, offset, limit)
+  local tokens = splitTokens(source, offset, limit)
+  local tags = {}
+  local padding = 78
+  for i, token in ipairs(tokens) do
+    if token.kind == "X" then
+      padding = padding - #token.lines[1]
+      table.remove(tokens, i)
+      table.insert(tags, token)
+    end
+  end
+  if #tags > 0 then
+    return append(
+      tokens,
+      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl } } },
+      { { kind = "text", offset = -1, limit = -1, lines = { string.rep(" ", padding) } } },
+      tags,
+      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
+    )
+  else
+    return append(
+      tokens,
+      { { kind = "text", offset = -1, limit = -1, lines = { "~", nl, nl } } }
+    )
+  end
+end
+
+
 local vimdoc_list_level = 0
 local vimdoc = rules {
   preamble = function(source, _offset, _limit)
@@ -979,81 +1011,14 @@ local vimdoc = rules {
   end,
   head1 = function(source, offset, limit)
     local nl = guessNewline(source)
-    offset = source:sub(1,  limit):find("%s", offset)
-    _, offset, limit = trimBlank(source, offset, limit)
-    local tokens = splitTokens(source, offset, limit)
-    local tags = {}
-    for i, token in ipairs(tokens) do
-      if token.kind == "X" then
-        table.remove(tokens, i)
-        table.insert(tags, token)
-      end
-    end
     return append(
       { { kind = "text", offset = -1, limit = -1, lines = { string.rep("=", 78 - #nl), nl } } },
-      tokens,
-      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
-      tags,
-      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
+      vimdoc_head(source, offset, limit)
     )
   end,
-  head2 = function(source, offset, limit)
-    local nl = guessNewline(source)
-    offset = source:sub(1,  limit):find("%s", offset)
-    _, offset, limit = trimBlank(source, offset, limit)
-    local tokens = splitTokens(source, offset, limit)
-    local tags = {}
-    for i, token in ipairs(tokens) do
-      if token.kind == "X" then
-        table.remove(tokens, i)
-        table.insert(tags, token)
-      end
-    end
-    return append(
-      tokens,
-      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
-      tags,
-      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
-    )
-  end,
-  head3 = function(source, offset, limit)
-    local nl = guessNewline(source)
-    offset = source:sub(1,  limit):find("%s", offset)
-    _, offset, limit = trimBlank(source, offset, limit)
-    local tokens = splitTokens(source, offset, limit)
-    local tags = {}
-    for i, token in ipairs(tokens) do
-      if token.kind == "X" then
-        table.remove(tokens, i)
-        table.insert(tags, token)
-      end
-    end
-    return append(
-      tokens,
-      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
-      tags,
-      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
-    )
-  end,
-  head4 = function(source, offset, limit)
-    local nl = guessNewline(source)
-    offset = source:sub(1,  limit):find("%s", offset)
-    _, offset, limit = trimBlank(source, offset, limit)
-    local tokens = splitTokens(source, offset, limit)
-    local tags = {}
-    for i, token in ipairs(tokens) do
-      if token.kind == "X" then
-        table.remove(tokens, i)
-        table.insert(tags, token)
-      end
-    end
-    return append(
-      tokens,
-      { { kind = "text", offset = -1, limit = -1, lines = { "~ " } } },
-      tags,
-      { { kind = "text", offset = -1, limit = -1, lines = { nl, nl } } }
-    )
-  end,
+  head2 = vimdoc_head,
+  head3 = vimdoc_head,
+  head4 = vimdoc_head,
   para = function(source, offset, limit)
     local nl = guessNewline(source)
     _, offset, limit = trimBlank(source, offset, limit)
