@@ -1446,7 +1446,7 @@ package.preload["podium"] = function()
 end
 
 
-if arg[0]:match('podium') then
+if #arg > 0 and arg[0]:match('podium') then
   local input
   if arg[2] then
     local ifile = io.open(arg[2], "r")
