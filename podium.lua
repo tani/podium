@@ -503,7 +503,18 @@ local function process(source, target)
 end
 
 
-local html = {
+local function rules(tbl)
+  return setmetatable(tbl, {
+    __index = function(_table, _key)
+      return function(_source, _offset, _limit)
+        return {}
+      end
+    end
+  })
+end
+
+
+local html = rules {
   preamble = function(_source, _offset, _limit)
     return {}
   end,
@@ -723,7 +734,7 @@ local html = {
 }
 
 local markdown_list_level = 0
-local markdown = {
+local markdown = rules {
   preamble = function(_source, _offset, _limit)
     return {}
   end,
@@ -931,7 +942,7 @@ local markdown = {
 }
 
 local vimdoc_list_level = 0
-local vimdoc = {
+local vimdoc = rules {
   preamble = function(source, _offset, _limit)
     local nl = guessNewline(source)
     local frontmatter = parseFrontMatter(source)
@@ -1198,7 +1209,7 @@ local vimdoc = {
 }
 
 
-local latex = {
+local latex = rules {
   preamble = function(_source, _offset, _limit)
     return {}
   end,
