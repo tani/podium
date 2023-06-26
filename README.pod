@@ -37,7 +37,7 @@ the usage instructions provided in the subsequent sections.
 
 =head2 Installation
 
-  $ wget https://raw.githubusercontent.com/tani/podium/main/podium.lua
+  $ wget https://pod.deno.dev/podium.lua
   $ chmod +x podium.lua
 
 =head2 Usage
