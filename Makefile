@@ -1,7 +1,10 @@
-.PHONY: fmt test
+.PHONY: format test serve
 
-fmt:
+format:
 	stylua **/*.lua
 
 test:
 	busted -m lua/?.lua
+
+serve:
+	deno run -A deno/app.ts
