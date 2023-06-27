@@ -1,0 +1,8 @@
+
+tasks:
+  - name: Install Lua development tools
+    command: brew install lua busted stylua
+
+vscode:
+  extensions:
+    - sumneko.lua
