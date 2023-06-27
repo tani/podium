@@ -1,8 +1,14 @@
 
 tasks:
-  - name: Install Lua development tools
-    command: brew install lua busted stylua
+  - name: Install development tools
+    command: brew install lua busted stylua deno
+  - name: Start web app
+    command: deno run -A app.ts
 
 vscode:
   extensions:
     - sumneko.lua
+
+ports:
+  - port: 8000
+    visibility: private
