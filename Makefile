@@ -1,7 +1,7 @@
 .PHONY: fmt test
 
 fmt:
-	stylua -g lua/*.lua
+	stylua **/*.lua
 
 test:
 	busted -m lua/?.lua
