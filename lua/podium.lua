@@ -3,6 +3,8 @@
 local M = {}
 local _ -- dummy
 
+---@param t table
+---@param indent? number  always 0
 -- luacheck: ignore
 local function debug(t, indent)
   indent = indent or 0
@@ -16,6 +18,8 @@ local function debug(t, indent)
   end
 end
 
+---@param source string
+---@return string "\r"|"\n"|"\r\n"
 local function guessNewline(source)
   local i = 1
   while i <= #source do
@@ -34,6 +38,10 @@ local function guessNewline(source)
   return "\n"
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return string,integer,integer
 local function trimBlank(source, offset, limit)
   -- remove leading blank spaces and tailing blank spaces
   -- and return the new source with the new offset and limit
@@ -58,6 +66,10 @@ local function trimBlank(source, offset, limit)
   return source:sub(i, j), i, j
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return string[]
 local function splitLines(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
@@ -81,6 +93,8 @@ local function splitLines(source, offset, limit)
   return lines
 end
 
+---@param source string
+---@return table<string, string>
 local function parseFrontMatter(source)
   local frontmatter = {}
   local lines = splitLines(source)
@@ -104,6 +118,9 @@ local function parseFrontMatter(source)
   return frontmatter
 end
 
+---@param source string
+---@param offset integer
+---@return integer,integer
 local function offsetToRowCol(source, offset)
   local row = 1
   local col = 1
@@ -127,6 +144,10 @@ local function offsetToRowCol(source, offset)
   return row, col
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return integer|nil,integer?,integer?,integer?
 local function findInline(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
@@ -197,6 +218,8 @@ local function findInline(source, offset, limit)
   return nil
 end
 
+---@param source string
+---@return PodiumElement[]
 local function splitParagraphs(source)
   local state_list = 0
   local state_para = 0
@@ -310,6 +333,10 @@ local function splitParagraphs(source)
   return paragraphs
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return PodiumElement[]
 local function splitItemParts(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
@@ -355,6 +382,10 @@ local function splitItemParts(source, offset, limit)
   return parts
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return PodiumElement[]
 local function splitItems(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
@@ -401,6 +432,10 @@ local function splitItems(source, offset, limit)
   return items
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return PodiumElement[]
 local function splitTokens(source, offset, limit)
   offset = offset or 1
   limit = limit or #source
@@ -435,6 +470,11 @@ local function splitTokens(source, offset, limit)
   return tokens
 end
 
+---@generic T
+---@param t T[]
+---@param i? integer
+---@param j? integer
+---@return T[]
 local function slice(t, i, j)
   i = i and i > 0 and i or 1
   j = j and j <= #t and j or #t
@@ -445,6 +485,10 @@ local function slice(t, i, j)
   return r
 end
 
+---@generic T
+---@param t T[]
+---@vararg T
+---@return T[]
 local function append(t, ...)
   local r = {}
   for _, v in ipairs(t) do
@@ -458,6 +502,8 @@ local function append(t, ...)
   return r
 end
 
+---@param source string
+---@param target PodiumConverter
 local function process(source, target)
   local elements = splitParagraphs(source)
   local shouldProcess = false
@@ -501,6 +547,18 @@ local function process(source, target)
   return output
 end
 
+---@class PodiumElement
+---@field kind string
+---@field offset integer
+---@field limit integer
+---@field lines string[]
+
+---@alias PodiumIdentifier string
+---@alias PodiumConvertElementSource fun(source: string, offset?: integer, limit?: integer): PodiumElement[]
+---@alias PodiumConverter table<PodiumIdentifier, PodiumConvertElementSource>
+
+---@param tbl PodiumConverter
+---@return PodiumConverter
 local function rules(tbl)
   return setmetatable(tbl, {
     __index = function(_table, _key)
@@ -938,6 +996,10 @@ local markdown = rules({
   end,
 })
 
+---@param source string
+---@param offset integer
+---@param limit integer
+---@return PodiumElement[]
 local function vimdoc_head(source, offset, limit)
   local nl = guessNewline(source)
   offset = source:sub(1, limit):find("%s", offset)
@@ -1392,6 +1454,10 @@ local latex = rules({
   end,
 })
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return string
 function M.arg(source, offset, limit)
   local _, b, e, _ = findInline(source, offset, limit)
   if b then
@@ -1401,6 +1467,10 @@ function M.arg(source, offset, limit)
   end
 end
 
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return string
 function M.body(source, offset, limit)
   local nl = guessNewline(source)
   local _, e = source:sub(1, limit):find("^=begin.*" .. nl, offset)
@@ -1420,8 +1490,8 @@ M.markdown = markdown
 M.latex = latex
 M.vimdoc = vimdoc
 
-if SOURCE and TARGET then
-  return M.process(SOURCE, M[TARGET])
+if _G["SOURCE"] and _G["TARGET"] then
+  return M.process(_G["SOURCE"], M[_G["TARGET"]])
 end
 
 package.preload["podium"] = function()
