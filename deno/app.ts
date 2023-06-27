@@ -22,6 +22,6 @@ app.post("/:target{html|markdown|latex|vimdoc}", async (ctx) => {
   const result = process(source, target);
   return ctx.text(result);
 })
-app.get("/*", serveStatic({ root: "." }));
+app.get("/*", serveStatic({ root: 'deno' }));
 
 serve(app.fetch);
