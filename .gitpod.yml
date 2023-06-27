@@ -3,7 +3,7 @@ tasks:
   - name: Install development tools
     command: brew install lua busted stylua deno
   - name: Start web app
-    command: deno run -A deno/app.ts
+    command: make serve
 
 vscode:
   extensions:
