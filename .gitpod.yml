@@ -6,7 +6,11 @@ tasks:
 vscode:
   extensions:
     - sumneko.lua
+    - denoland.vscode-deno
 
 ports:
   - port: 8000
     visibility: private
+
+image:
+  file: .gitpod.Dockerfile
