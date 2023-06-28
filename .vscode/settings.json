@@ -1,3 +1,7 @@
 {
-    "deno.enable": true
+    "deno.enable": true,
+    "Lua.diagnostics.globals": [
+        "it",
+        "describe"
+    ],
 }
