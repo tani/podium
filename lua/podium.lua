@@ -477,10 +477,11 @@ local function splitTokens(source, offset, limit)
   return tokens
 end
 
----@param t PodiumElement[]
+---@generic T
+---@param t T[]
 ---@param i? integer
 ---@param j? integer
----@return PodiumElement[]
+---@return T[]
 local function slice(t, i, j)
   i = i and i > 0 and i or 1
   j = j and j <= #t and j or #t
@@ -491,9 +492,10 @@ local function slice(t, i, j)
   return r
 end
 
----@param t PodiumElement[]
----@vararg PodiumElement[]
----@return PodiumElement[]
+---@generic T
+---@param t T[]
+---@param ... T[]
+---@return T[]
 local function append(t, ...)
   local r = {}
   for _, v in ipairs(t) do
