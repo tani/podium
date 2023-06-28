@@ -23,7 +23,7 @@ app.post("/:target{html|markdown|latex|vimdoc}", async (ctx) => {
   return ctx.text(result);
 });
 
-app.get("/podium.lua", async(ctx) = > {
+app.get("/podium.lua", async (ctx) => {
   return ctx.text(podium);
 });
 
