@@ -174,16 +174,7 @@ local function findInline(source, offset, limit)
         end
         if i > limit then
           local row, col = offsetToRowCol(source, b_cmd)
-          error(
-            "Missing closing brackets '<"
-              .. string.rep(">", count)
-              .. "':"
-              .. row
-              .. ":"
-              .. col
-              .. ": "
-              .. source:sub(b_cmd, b_cmd + count)
-          )
+          error("ERROR:" .. row .. ":" .. col .. ": " .. "Missing closing brackets '<" .. string.rep(">", count) .. "'")
         end
         local angles = space .. string.rep(">", count)
         while i <= limit do
@@ -193,7 +184,23 @@ local function findInline(source, offset, limit)
           end
           if source:sub(i, i) == "<" then
             if source:sub(i - 1, i - 1):match("[A-Z]") then
-              _, _, _, i = findInline(source, i - 1)
+              local _, _, _, e_cmd = findInline(source, i - 1)
+              if e_cmd then
+                i = e_cmd
+              else
+                local row, col = offsetToRowCol(source, i - 1)
+                error(
+                  "ERROR:"
+                    .. row
+                    .. ":"
+                    .. col
+                    .. ":"
+                    .. "Failed to find the end of command '"
+                    .. source:sub(i - 1, i)
+                    .. "'"
+                )
+              end
+              i = e_cmd or i
             end
           end
           i = i + 1
@@ -470,11 +477,10 @@ local function splitTokens(source, offset, limit)
   return tokens
 end
 
----@generic T
----@param t T[]
+---@param t PodiumElement[]
 ---@param i? integer
 ---@param j? integer
----@return T[]
+---@return PodiumElement[]
 local function slice(t, i, j)
   i = i and i > 0 and i or 1
   j = j and j <= #t and j or #t
@@ -485,10 +491,9 @@ local function slice(t, i, j)
   return r
 end
 
----@generic T
----@param t T[]
----@vararg T
----@return T[]
+---@param t PodiumElement[]
+---@vararg PodiumElement[]
+---@return PodiumElement[]
 local function append(t, ...)
   local r = {}
   for _, v in ipairs(t) do
@@ -554,7 +559,7 @@ end
 ---@field lines string[]
 
 ---@alias PodiumIdentifier string
----@alias PodiumConvertElementSource fun(source: string, offset?: integer, limit?: integer): PodiumElement[]
+---@alias PodiumConvertElementSource fun(source: string, offset: integer, limit: integer): PodiumElement[]
 ---@alias PodiumConverter table<PodiumIdentifier, PodiumConvertElementSource>
 
 ---@param tbl PodiumConverter
