@@ -7,8 +7,8 @@ const podium = await fetch(new URL('podium.lua', import.meta.url)).then(r => r.t
 
 function process(source: string, target: string): string {
   const script = `
-    local SOURCE = [===[${source}]===]
-    local TARGET = [===[${target}]===]
+    _G.SOURCE = [===[${source}]===]
+    _G.TARGET = [===[${target}]===]
     ${podium.replace(/^#!.*\n/, '')}
   `
   return fengari.load(script)();
@@ -22,6 +22,9 @@ app.post("/:target{html|markdown|latex|vimdoc}", async (ctx) => {
   const result = process(source, target);
   return ctx.text(result);
 })
-app.get("/*", serveStatic({ root: 'deno' }));
+
+const csd = new URL(import.meta.url).pathname.replace('/app.ts', '')
+const root = csd.replace(Deno.cwd(), '')
+app.get("/*", serveStatic({ root }));
 
 serve(app.fetch);

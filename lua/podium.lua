@@ -1494,10 +1494,6 @@ if _G["SOURCE"] and _G["TARGET"] then
   return M.process(_G["SOURCE"], M[_G["TARGET"]])
 end
 
-package.preload["podium"] = function()
-  return M
-end
-
 if #arg > 0 and arg[0]:match("podium") then
   local input
   if arg[2] then
