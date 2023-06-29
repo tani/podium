@@ -379,7 +379,7 @@ end
 ---@param startIndex? integer
 ---@param endIndex? integer
 ---@return PodiumElement[]
-local function splitItemParts(source, startIndex, endIndex)
+local function splitItem(source, startIndex, endIndex)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
   local lines = {}
@@ -758,7 +758,7 @@ local html = rules({
     _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
     return append(
       { parsed_token({ "<li>" }) },
-      splitItemParts(source, startIndex, endIndex),
+      splitItem(source, startIndex, endIndex),
       { parsed_token({ "</li>", nl }) }
     )
   end,
@@ -921,7 +921,7 @@ local markdown = rules({
     local indent = string.rep(" ", markdown_list_level - 2)
     return append(
       { parsed_token({ indent, bullet, " " }) },
-      splitItemParts(source, startIndex, endIndex),
+      splitItem(source, startIndex, endIndex),
       { parsed_token({ nl }) }
     )
   end,
@@ -1128,7 +1128,7 @@ local vimdoc = rules({
     local indent = string.rep(" ", vimdoc_list_level - 2)
     return append(
       { parsed_token({ indent, bullet, " " }) },
-      splitItemParts(source, startIndex, endIndex),
+      splitItem(source, startIndex, endIndex),
       { parsed_token({ nl }) }
     )
   end,
@@ -1300,7 +1300,7 @@ local latex = rules({
     local nl = guessNewline(source)
     _, startIndex = source:sub(1, endIndex):find("^=item%s*[*0-9]*%.?.", startIndex)
     _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token({ nl, "\\item " }) }, splitItemParts(source, startIndex, endIndex))
+    return append({ parsed_token({ nl, "\\item " }) }, splitItem(source, startIndex, endIndex))
   end,
   ["for"] = function(source, startIndex, endIndex)
     local nl = guessNewline(source)
@@ -1409,7 +1409,7 @@ end
 
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
-M.splitItemParts = splitItemParts
+M.splitItem = splitItem
 M.splitItems = splitItems
 M.findInline = findInline
 M.splitTokens = splitTokens

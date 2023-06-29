@@ -447,9 +447,9 @@ describe("POD Parser", function()
     end)
   end)
 
-  describe("splitItemParts function", function()
+  describe("splitItem function", function()
     it("split parts", function()
-      local actual = pod.splitItemParts(unindent([[
+      local actual = pod.splitItem(unindent([[
         =item foo bar]]))
       local expected = {
         {
@@ -464,7 +464,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("split parts with begin - end", function()
-      local actual = pod.splitItemParts(unindent([[
+      local actual = pod.splitItem(unindent([[
         =item foo
         bar
         =over
