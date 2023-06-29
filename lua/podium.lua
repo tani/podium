@@ -18,6 +18,38 @@ local function debug(t, indent)
   end
 end
 
+---@generic T
+---@param t T[]
+---@param i? integer
+---@param j? integer
+---@return T[]
+local function slice(t, i, j)
+  i = i and i > 0 and i or 1
+  j = j and j <= #t and j or #t
+  local r = {}
+  for k = i, j do
+    table.insert(r, t[k])
+  end
+  return r
+end
+
+---@generic T
+---@param t T[]
+---@param ... T[]
+---@return T[]
+local function append(t, ...)
+  local r = {}
+  for _, v in ipairs(t) do
+    table.insert(r, v)
+  end
+  for _, s in ipairs({ ... }) do
+    for _, v in ipairs(s) do
+      table.insert(r, v)
+    end
+  end
+  return r
+end
+
 ---@param source string
 ---@return string "\r"|"\n"|"\r\n"
 local function guessNewline(source)
@@ -226,8 +258,12 @@ local function findInline(source, offset, limit)
 end
 
 ---@param source string
+---@param offset? integer
+---@param limit? integer
 ---@return PodiumElement[]
-local function splitParagraphs(source)
+local function splitParagraphs(source, offset, limit)
+  offset = offset or 0 ---@cast offset integer
+  limit = limit or #source ---@cast limit integer
   local state_list = 0
   local state_para = 0
   local state_verb = 0
@@ -477,36 +513,48 @@ local function splitTokens(source, offset, limit)
   return tokens
 end
 
----@generic T
----@param t T[]
----@param i? integer
----@param j? integer
----@return T[]
-local function slice(t, i, j)
-  i = i and i > 0 and i or 1
-  j = j and j <= #t and j or #t
-  local r = {}
-  for k = i, j do
-    table.insert(r, t[k])
-  end
-  return r
-end
-
----@generic T
----@param t T[]
----@param ... T[]
----@return T[]
-local function append(t, ...)
-  local r = {}
-  for _, v in ipairs(t) do
-    table.insert(r, v)
-  end
-  for _, s in ipairs({ ... }) do
-    for _, v in ipairs(s) do
-      table.insert(r, v)
+---@param source string
+---@param offset? integer
+---@param limit? integer
+---@return PodiumElement[]
+local function splitIndentBlock(source, offset, limit)
+  offset = offset or 1 ---@cast offset integer
+  limit = limit or #source ---@cast limit integer
+  ---@type 'begin' | 'content' | 'end'
+  local state = "begin"
+  local over_offset = offset
+  local over_limit = 0
+  local back_offset = 0
+  local back_limit = 0
+  local content_offset = 0
+  local content_limit = 0
+  for _, line in ipairs(splitLines(source, offset, limit)) do
+    if state == "begin" then
+      over_limit = over_limit + #line
+      if line:match("^%s+$") then
+        content_offset = over_limit
+        content_limit = over_limit
+        over_limit = over_limit - 1
+        state = "content"
+      end
+    elseif state == "indent" then
+      content_limit = content_limit + #line
+      if line:match("^=back") then
+        back_offset = content_limit
+        back_limit = content_limit
+        content_limit = content_limit - 1
+        state = "end"
+      end
+    else ---@cast state 'end'
+      back_limit = back_limit + #line
     end
   end
-  return r
+  back_limit = back_limit - 1
+  return append(
+    { { kind = "over", offset = over_offset, limit = over_limit, lines = splitLines(source, over_offset, over_limit) } },
+    splitParagraphs(source, content_offset, content_limit),
+    { { kind = "back", offset = back_offset, limit = back_limit, lines = splitLines(source, back_offset, back_limit) } }
+  )
 end
 
 ---@param source string
@@ -554,14 +602,18 @@ local function process(source, target)
   return output
 end
 
+---@alias PodiumElementKindInlineCmd 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+---@alias PodiumElementKindBlockCmd 'pod' | 'cut' | 'encoding' | 'over' | 'item' | 'back' | 'verb' | 'for' | 'head1' | 'head2' | 'head3' | 'head4'
+---@alias PodiumElementKindInternalConstituent 'part' | 'para' | 'text' | 'preamble' | 'postamble' | 'skip'
+---@alias PodiumElementKind PodiumElementKindBlockCmd | PodiumElementKindInlineCmd | PodiumElementKindInternalConstituent | string
 ---@class PodiumElement
----@field kind string
+---@field kind PodiumElementKind
 ---@field offset integer
 ---@field limit integer
 ---@field lines string[]
 
 ---@alias PodiumIdentifier string
----@alias PodiumConvertElementSource fun(source: string, offset: integer, limit: integer): PodiumElement[]
+---@alias PodiumConvertElementSource fun(source: string, offset?: integer, limit?: integer): PodiumElement[]
 ---@alias PodiumConverter table<PodiumIdentifier, PodiumConvertElementSource>
 
 ---@param tbl PodiumConverter
@@ -576,11 +628,11 @@ local function rules(tbl)
   })
 end
 
-
+---@param lines string[]
+---@return PodiumElement
 local function parsed_token(lines)
   return { kind = "text", offset = -1, limit = -1, lines = lines }
 end
-
 
 local html = rules({
   preamble = function(_source, _offset, _limit)
@@ -593,50 +645,30 @@ local html = rules({
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<h1>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</h1>", nl }) }
-    )
+    return append({ parsed_token({ "<h1>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</h1>", nl }) })
   end,
   head2 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<h2>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</h2>", nl }) }
-    )
+    return append({ parsed_token({ "<h2>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</h2>", nl }) })
   end,
   head3 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<h3>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</h3>", nl }) }
-    )
+    return append({ parsed_token({ "<h3>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</h3>", nl }) })
   end,
   head4 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<h4>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</h4>", nl }) }
-    )
+    return append({ parsed_token({ "<h4>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</h4>", nl }) })
   end,
   para = function(source, offset, limit)
     local nl = guessNewline(source)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<p>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</p>", nl }) }
-    )
+    return append({ parsed_token({ "<p>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</p>", nl }) })
   end,
   over = function(source, offset, _limit)
     local nl = guessNewline(source)
@@ -676,7 +708,7 @@ local html = rules({
     return {
       parsed_token({ "<pre><code>", nl }),
       parsed_token(splitLines(source, offset, limit)),
-      parsed_token({ "</code></pre>", nl })
+      parsed_token({ "</code></pre>", nl }),
     }
   end,
   html = function(source, offset, limit)
@@ -711,7 +743,7 @@ local html = rules({
     return {
       parsed_token({ "<pre><code>", nl }),
       parsed_token(splitLines(source, offset, limit)),
-      parsed_token({ "</code></pre>", nl })
+      parsed_token({ "</code></pre>", nl }),
     }
   end,
   list = function(source, offset, limit)
@@ -723,11 +755,7 @@ local html = rules({
   I = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<em>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</em>" }) }
-    )
+    return append({ parsed_token({ "<em>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</em>" }) })
   end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
@@ -741,11 +769,7 @@ local html = rules({
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<code>" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "</code>" }) }
-    )
+    return append({ parsed_token({ "<code>" }) }, splitTokens(source, offset, limit), { parsed_token({ "</code>" }) })
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
@@ -753,17 +777,17 @@ local html = rules({
     local b, e = source:sub(1, limit):find("[^|]*|", offset)
     if b then
       return append(
-        { parsed_token({ "<a href=\"" }) },
+        { parsed_token({ '<a href="' }) },
         splitTokens(source, e + 1, limit),
-        { parsed_token({ "\">" }) },
+        { parsed_token({ '">' }) },
         splitTokens(source, b, e - 1),
         { parsed_token({ "</a>" }) }
       )
     else
       return append(
-        { parsed_token({ "<a href=\"" }) },
+        { parsed_token({ '<a href="' }) },
         splitTokens(source, offset, limit),
-        { parsed_token({ "\">" }) },
+        { parsed_token({ '">' }) },
         splitTokens(source, offset, limit),
         { parsed_token({ "</a>" }) }
       )
@@ -778,11 +802,7 @@ local html = rules({
   X = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "<a name=\"" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "\"></a>" }) }
-    )
+    return append({ parsed_token({ '<a name="' }) }, splitTokens(source, offset, limit), { parsed_token({ '"></a>' }) })
   end,
   Z = function(_source, _offset, _limit)
     return {}
@@ -801,49 +821,30 @@ local markdown = rules({
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "# " }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl, nl }) }
-    )
+    return append({ parsed_token({ "# " }) }, splitTokens(source, offset, limit), { parsed_token({ nl, nl }) })
   end,
   head2 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "## " }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl, nl }) }
-    )
+    return append({ parsed_token({ "## " }) }, splitTokens(source, offset, limit), { parsed_token({ nl, nl }) })
   end,
   head3 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "### " }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl, nl }) }
-    )
+    return append({ parsed_token({ "### " }) }, splitTokens(source, offset, limit), { parsed_token({ nl, nl }) })
   end,
   head4 = function(source, offset, limit)
     local nl = guessNewline(source)
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "#### " }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl, nl }) }
-    )
+    return append({ parsed_token({ "#### " }) }, splitTokens(source, offset, limit), { parsed_token({ nl, nl }) })
   end,
   para = function(source, offset, limit)
     local nl = guessNewline(source)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl, nl }) }
-    )
+    return append(splitTokens(source, offset, limit), { parsed_token({ nl, nl }) })
   end,
   over = function(_source, _offset, _limit)
     markdown_list_level = markdown_list_level + 2
@@ -865,7 +866,7 @@ local markdown = rules({
     return {
       parsed_token({ "```", nl }),
       parsed_token(splitLines(source, offset, limit)),
-      parsed_token({ "```", nl, nl })
+      parsed_token({ "```", nl, nl }),
     }
   end,
   html = function(source, offset, limit)
@@ -905,7 +906,7 @@ local markdown = rules({
     return {
       parsed_token({ "```", nl }),
       parsed_token(splitLines(source, offset, limit)),
-      parsed_token({ "```", nl })
+      parsed_token({ "```", nl }),
     }
   end,
   list = function(source, offset, limit)
@@ -917,29 +918,17 @@ local markdown = rules({
   I = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "*" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "*" }) }
-    )
+    return append({ parsed_token({ "*" }) }, splitTokens(source, offset, limit), { parsed_token({ "*" }) })
   end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "**" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "**" }) }
-    )
+    return append({ parsed_token({ "**" }) }, splitTokens(source, offset, limit), { parsed_token({ "**" }) })
   end,
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "`" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "`" }) }
-    )
+    return append({ parsed_token({ "`" }) }, splitTokens(source, offset, limit), { parsed_token({ "`" }) })
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
@@ -1063,10 +1052,7 @@ local vimdoc = rules({
   para = function(source, offset, limit)
     local nl = guessNewline(source)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl, nl }) }
-    )
+    return append(splitTokens(source, offset, limit), { parsed_token({ nl, nl }) })
   end,
   over = function(_source, _offset, _limit)
     vimdoc_list_level = vimdoc_list_level + 2
@@ -1087,7 +1073,7 @@ local vimdoc = rules({
     return {
       parsed_token({ ">", nl }),
       parsed_token(splitLines(source, offset, limit)),
-      parsed_token({ "<", nl, nl })
+      parsed_token({ "<", nl, nl }),
     }
   end,
   vimdoc = function(source, offset, limit)
@@ -1127,7 +1113,7 @@ local vimdoc = rules({
     return {
       parsed_token({ "<", nl }),
       parsed_token(splitLines(source, offset, limit)),
-      parsed_token({ ">", nl, nl })
+      parsed_token({ ">", nl, nl }),
     }
   end,
   list = function(source, offset, limit)
@@ -1139,20 +1125,12 @@ local vimdoc = rules({
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "`" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "`" }) }
-    )
+    return append({ parsed_token({ "`" }) }, splitTokens(source, offset, limit), { parsed_token({ "`" }) })
   end,
   O = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "'" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "'" }) }
-    )
+    return append({ parsed_token({ "'" }) }, splitTokens(source, offset, limit), { parsed_token({ "'" }) })
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
@@ -1166,21 +1144,13 @@ local vimdoc = rules({
         { parsed_token({ "|" }) }
       )
     else
-      return append(
-        { parsed_token({ "|" }) },
-        splitTokens(source, offset, limit),
-        { parsed_token({ "|" }) }
-      )
+      return append({ parsed_token({ "|" }) }, splitTokens(source, offset, limit), { parsed_token({ "|" }) })
     end
   end,
   X = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "*" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "*" }) }
-    )
+    return append({ parsed_token({ "*" }) }, splitTokens(source, offset, limit), { parsed_token({ "*" }) })
   end,
   E = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
@@ -1214,7 +1184,7 @@ local latex = rules({
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
     return append(
-      { parsed_token({ nl,  "\\section{" }) },
+      { parsed_token({ nl, "\\section{" }) },
       splitTokens(source, offset, limit),
       { parsed_token({ "}", nl }) }
     )
@@ -1224,7 +1194,7 @@ local latex = rules({
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
     return append(
-      { parsed_token({ nl,  "\\subsection{" }) },
+      { parsed_token({ nl, "\\subsection{" }) },
       splitTokens(source, offset, limit),
       { parsed_token({ "}", nl }) }
     )
@@ -1234,7 +1204,7 @@ local latex = rules({
     offset = source:sub(1, limit):find("%s", offset)
     _, offset, limit = trimBlank(source, offset, limit)
     return append(
-      { parsed_token({ nl,  "\\subsubsection{" }) },
+      { parsed_token({ nl, "\\subsubsection{" }) },
       splitTokens(source, offset, limit),
       { parsed_token({ "}", nl }) }
     )
@@ -1242,18 +1212,15 @@ local latex = rules({
   para = function(source, offset, limit)
     local nl = guessNewline(source)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      splitTokens(source, offset, limit),
-      { parsed_token({ nl }) }
-    )
+    return append(splitTokens(source, offset, limit), { parsed_token({ nl }) })
   end,
   over = function(source, offset, _limit)
     local nl = guessNewline(source)
     local _, i = source:find("=item%s*.", offset)
-    if source:sub(i, i):match("[0-9]")  then
-      return { parsed_token({ nl,  "\\begin{enumerate}" }) }
+    if source:sub(i, i):match("[0-9]") then
+      return { parsed_token({ nl, "\\begin{enumerate}" }) }
     else
-      return { parsed_token({ nl,  "\\begin{itemize}" }) }
+      return { parsed_token({ nl, "\\begin{itemize}" }) }
     end
   end,
   back = function(source, offset, _limit)
@@ -1269,9 +1236,9 @@ local latex = rules({
       end
     end
     if source:sub(i, i):match("[0-9]") then
-      return { parsed_token({ nl,  "\\end{enumerate}", nl }) }
+      return { parsed_token({ nl, "\\end{enumerate}", nl }) }
     else
-      return { parsed_token({ nl,  "\\end{itemize}", nl }) }
+      return { parsed_token({ nl, "\\end{itemize}", nl }) }
     end
   end,
   cut = function(_source, _offset, _limit)
@@ -1283,7 +1250,7 @@ local latex = rules({
   verb = function(source, offset, limit)
     local nl = guessNewline(source)
     return {
-      parsed_token({ nl,  "\\begin{verbatim}", nl }),
+      parsed_token({ nl, "\\begin{verbatim}", nl }),
       parsed_token(splitLines(source, offset, limit)),
       parsed_token({ "\\end{verbatim}", nl }),
     }
@@ -1308,16 +1275,13 @@ local latex = rules({
     local nl = guessNewline(source)
     _, offset = source:sub(1, limit):find("^=item%s*[*0-9]*%.?.", offset)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ nl,  "\\item " }) },
-      splitItemParts(source, offset, limit)
-    )
+    return append({ parsed_token({ nl, "\\item " }) }, splitItemParts(source, offset, limit))
   end,
   ["for"] = function(source, offset, limit)
     local nl = guessNewline(source)
     _, offset = source:sub(1, limit):find("=for%s+%S+%s", offset)
     return {
-      parsed_token({ nl,  "\\begin{verbatim}", nl }),
+      parsed_token({ nl, "\\begin{verbatim}", nl }),
       parsed_token(splitLines(source, offset, limit)),
       parsed_token({ "\\end{verbatim}", nl }),
     }
@@ -1331,29 +1295,17 @@ local latex = rules({
   I = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "\\textit{" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "}" }) }
-    )
+    return append({ parsed_token({ "\\textit{" }) }, splitTokens(source, offset, limit), { parsed_token({ "}" }) })
   end,
   B = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "\\textbf{" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "}" }) }
-    )
+    return append({ parsed_token({ "\\textbf{" }) }, splitTokens(source, offset, limit), { parsed_token({ "}" }) })
   end,
   C = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "\\verb|" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "|" }) }
-    )
+    return append({ parsed_token({ "\\verb|" }) }, splitTokens(source, offset, limit), { parsed_token({ "|" }) })
   end,
   L = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
@@ -1368,11 +1320,7 @@ local latex = rules({
         { parsed_token({ "}" }) }
       )
     elseif source:sub(offset, limit):match("^https?://") then
-      return append(
-        { parsed_token({ "\\url{" }) },
-        splitTokens(source, offset, limit),
-        { parsed_token({ "}" }) }
-      )
+      return append({ parsed_token({ "\\url{" }) }, splitTokens(source, offset, limit), { parsed_token({ "}" }) })
     else
       return {
         { parsed_token({ "\\ref{" }) },
@@ -1396,18 +1344,14 @@ local latex = rules({
       return {
         parsed_token({ "\\texttt{" }),
         splitTokens(source, offset, limit),
-        parsed_token({ "}" })
+        parsed_token({ "}" }),
       }
     end
   end,
   X = function(source, offset, limit)
     _, offset, limit, _ = findInline(source, offset, limit)
     _, offset, limit = trimBlank(source, offset, limit)
-    return append(
-      { parsed_token({ "\\label{" }) },
-      splitTokens(source, offset, limit),
-      { parsed_token({ "}" }) }
-    )
+    return append({ parsed_token({ "\\label{" }) }, splitTokens(source, offset, limit), { parsed_token({ "}" }) })
   end,
   Z = function(_source, _offset, _limit)
     return {}
@@ -1444,6 +1388,7 @@ M.splitItemParts = splitItemParts
 M.splitItems = splitItems
 M.findInline = findInline
 M.splitTokens = splitTokens
+M.splitIndentBlock = splitIndentBlock
 M.process = process
 M.html = html
 M.markdown = markdown
