@@ -10,7 +10,7 @@ local function unindent(str)
 end
 
 describe("POD Parser", function()
-  describe("splitIndentBlock function", function()
+  describe("splitList function", function()
     it("split simple indent block", function()
       local content = unindent([[
       =over 8
@@ -19,7 +19,7 @@ describe("POD Parser", function()
 
       =back
       ]])
-      local actual = pod.splitIndentBlock(content)
+      local actual = pod.splitList(content)
       local expected = {
         {
           kind = "over",
@@ -30,7 +30,7 @@ describe("POD Parser", function()
           endIndex = 9,
         },
         {
-          kind = "para",
+          kind = "items",
           lines = {
             "hoge\n", "\n",
           },
@@ -62,7 +62,7 @@ describe("POD Parser", function()
 
       =back
       ]])
-      local actual = pod.splitIndentBlock(content)
+      local actual = pod.splitList(content)
       local expected = {
         {
           kind = "over",
@@ -73,21 +73,14 @@ describe("POD Parser", function()
           endIndex = 9,
         },
         {
-          kind = "para",
+          kind = "items",
           lines = {
             "hoge\n", "\n",
-          },
-          startIndex = 10,
-          endIndex = 15,
-        },
-        {
-          kind = "list",
-          lines = {
             "=over 4\n", "\n",
             "=item fuga\n", "\n",
             "=back\n", "\n",
           },
-          startIndex = 16,
+          startIndex = 10,
           endIndex = 43,
         },
         {
@@ -460,7 +453,7 @@ describe("POD Parser", function()
         =item foo bar]]))
       local expected = {
         {
-          kind = "part",
+          kind = "itempart",
           lines = {
             "=item foo bar",
           },
@@ -481,7 +474,7 @@ describe("POD Parser", function()
         bazz]]))
       local expected = {
         {
-          kind = "part",
+          kind = "itempart",
           lines = {
             "=item foo\n",
             "bar\n",
@@ -501,7 +494,7 @@ describe("POD Parser", function()
           endIndex = 33,
         },
         {
-          kind = "part",
+          kind = "itempart",
           lines = {
             "bazz",
           },

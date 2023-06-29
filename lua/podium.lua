@@ -365,7 +365,6 @@ local function splitParagraphs(source, startIndex, endIndex)
       table.insert(paragraphs, { kind = cmd_name, lines = lines })
     end
   end
-  local startIndex = startIndex
   for _, paragraph in ipairs(paragraphs) do
     paragraph.startIndex = startIndex
     for _, line in ipairs(paragraph.lines) do
@@ -389,7 +388,7 @@ local function splitItemParts(source, startIndex, endIndex)
   for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
     if state == 0 then
       if line:match("^=over") then
-        table.insert(parts, { kind = "part", lines = lines })
+        table.insert(parts, { kind = "itempart", lines = lines })
         state = state + 2
         lines = { line }
       else
@@ -412,7 +411,7 @@ local function splitItemParts(source, startIndex, endIndex)
     if state > 0 then
       table.insert(parts, { kind = "list", lines = lines })
     else
-      table.insert(parts, { kind = "part", lines = lines })
+      table.insert(parts, { kind = "itempart", lines = lines })
     end
   end
   for _, part in ipairs(parts) do
@@ -513,58 +512,74 @@ local function splitTokens(source, startIndex, endIndex)
   return tokens
 end
 
+
 ---@param source string
 ---@param startIndex? integer
 ---@param endIndex? integer
 ---@return PodiumElement[]
-local function splitIndentBlock(source, startIndex, endIndex)
+local function splitList(source, startIndex, endIndex)
   startIndex = startIndex or 1 ---@cast startIndex integer
   endIndex = endIndex or #source ---@cast endIndex integer
-  ---@type 'over' | 'content' | 'back'
+  ---@type 'over' | 'items' | 'back'
   local state = "over"
-  local over_offset = startIndex
-  local over_limit = startIndex
-  local back_offset = 0
-  local back_limit = 0
-  local content_offset = 0
-  local content_limit = 0
-  local content_depth = 0
-  for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
+  local lines = splitLines(source, startIndex, endIndex)
+  local over_lines = {}
+  local items_lines = {}
+  local items_depth = 0
+  local back_lines = {}
+  local i = 1
+  while i <= #lines do
+    local line = lines[i]
     if state == "over" then
-      over_limit = over_limit + #line
+      table.insert(over_lines, line)
       if line:match("^%s*$") then
-        content_offset = over_limit
-        content_limit = over_limit
-        over_limit = over_limit - 1
-        state = "content"
+        state = "items"
       end
-    elseif state == "content" then
+      i = i + 1
+    elseif state == "items" then
       if line:match("^=over") then
-        content_depth = content_depth + 1
-        content_limit = content_limit + #line
+        items_depth = items_depth + 1
+        table.insert(items_lines, line)
+        i = i + 1
       elseif line:match("^=back") then
-        content_depth = content_depth - 1
-        if content_depth >= 0 then
-          content_limit = content_limit + #line
+        items_depth = items_depth - 1
+        if items_depth >= 0 then
+          table.insert(items_lines, line)
+          i = i + 1
         else
-          back_offset = content_limit
-          back_limit = content_limit + #line
-          content_limit = content_limit - 1
           state = "back"
         end
       else
-        content_limit = content_limit + #line
+        table.insert(items_lines, line)
+        i = i + 1
       end
-    else ---@cast state 'back'
-      back_limit = back_limit + #line
+    else
+      table.insert(back_lines, line)
+      i = i + 1
     end
   end
-  back_limit = back_limit - 1
-  return append(
-    { { kind = "over", startIndex = over_offset, endIndex = over_limit, lines = splitLines(source, over_offset, over_limit) } },
-    splitParagraphs(source, content_offset, content_limit),
-    { { kind = "back", startIndex = back_offset, endIndex = back_limit, lines = splitLines(source, back_offset, back_limit) } }
-  )
+  local over_endIndex = startIndex
+  for _, line in ipairs(over_lines) do
+    over_endIndex = over_endIndex + #line
+  end
+  over_endIndex = over_endIndex - 1
+  local items_startIndex = over_endIndex + 1
+  local items_endIndex = items_startIndex
+  for _, line in ipairs(items_lines) do
+    items_endIndex = items_endIndex + #line
+  end
+  items_endIndex = items_endIndex - 1
+  local back_startIndex = items_endIndex + 1
+  local back_endIndex = back_startIndex
+  for _, line in ipairs(back_lines) do
+    back_endIndex = back_endIndex + #line
+  end
+  back_endIndex = back_endIndex - 1
+  return {
+    { kind = "over", startIndex = startIndex, endIndex = over_endIndex, lines = over_lines },
+    { kind = "items", startIndex = items_startIndex, endIndex = items_endIndex, lines = items_lines },
+    { kind = "back", startIndex = back_startIndex, endIndex = back_endIndex, lines = back_lines },
+  }
 end
 
 ---@param source string
@@ -614,7 +629,7 @@ end
 
 ---@alias PodiumElementKindInlineCmd 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
 ---@alias PodiumElementKindBlockCmd 'pod' | 'cut' | 'encoding' | 'over' | 'item' | 'back' | 'verb' | 'for' | 'head1' | 'head2' | 'head3' | 'head4'
----@alias PodiumElementKindInternalConstituent 'part' | 'para' | 'text' | 'preamble' | 'postamble' | 'skip'
+---@alias PodiumElementKindInternalConstituent 'itempart' | 'para' | 'text' | 'preamble' | 'postamble' | 'skip'
 ---@alias PodiumElementKind PodiumElementKindBlockCmd | PodiumElementKindInlineCmd | PodiumElementKindInternalConstituent | string
 ---@class PodiumElement
 ---@field kind PodiumElementKind
@@ -1398,7 +1413,7 @@ M.splitItemParts = splitItemParts
 M.splitItems = splitItems
 M.findInline = findInline
 M.splitTokens = splitTokens
-M.splitIndentBlock = splitIndentBlock
+M.splitList = splitList
 M.process = process
 M.html = html
 M.markdown = markdown
