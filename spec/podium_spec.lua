@@ -26,24 +26,24 @@ describe("POD Parser", function()
           lines = {
             "=over 8\n", "\n",
           },
-          offset = 1,
-          limit = 9,
+          startIndex = 1,
+          endIndex = 9,
         },
         {
           kind = "para",
           lines = {
             "hoge\n", "\n",
           },
-          offset = 10,
-          limit = 15,
+          startIndex = 10,
+          endIndex = 15,
         },
         {
           kind = "back",
           lines = {
             "=back\n",
           },
-          offset = 16,
-          limit = 21,
+          startIndex = 16,
+          endIndex = 21,
         },
       }
       assert.are.same(expected, actual)
@@ -69,16 +69,16 @@ describe("POD Parser", function()
           lines = {
             "=over 8\n", "\n",
           },
-          offset = 1,
-          limit = 9,
+          startIndex = 1,
+          endIndex = 9,
         },
         {
           kind = "para",
           lines = {
             "hoge\n", "\n",
           },
-          offset = 10,
-          limit = 15,
+          startIndex = 10,
+          endIndex = 15,
         },
         {
           kind = "list",
@@ -87,16 +87,16 @@ describe("POD Parser", function()
             "=item fuga\n", "\n",
             "=back\n", "\n",
           },
-          offset = 16,
-          limit = 43,
+          startIndex = 16,
+          endIndex = 43,
         },
         {
           kind = "back",
           lines = {
             "=back\n",
           },
-          offset = 44,
-          limit = 49,
+          startIndex = 44,
+          endIndex = 49,
         },
       }
       assert.are.same(expected, actual)
@@ -132,20 +132,20 @@ describe("POD Parser", function()
         {
           kind = "para",
           lines = { "foo\n", "\n" },
-          offset = 1,
-          limit = 5,
+          startIndex = 1,
+          endIndex = 5,
         },
         {
           kind = "para",
           lines = { "bar\n", "\n" },
-          offset = 6,
-          limit = 10,
+          startIndex = 6,
+          endIndex = 10,
         },
         {
           kind = "para",
           lines = { "bazz" },
-          offset = 11,
-          limit = 14,
+          startIndex = 11,
+          endIndex = 14,
         },
       }
       assert.are.same(expected, actual)
@@ -167,8 +167,8 @@ describe("POD Parser", function()
         {
           kind = "para",
           lines = { "foo\n", "\n" },
-          offset = 1,
-          limit = 5,
+          startIndex = 1,
+          endIndex = 5,
         },
         {
           kind = "list",
@@ -182,14 +182,14 @@ describe("POD Parser", function()
             "=back\n",
             "\n",
           },
-          offset = 6,
-          limit = 42,
+          startIndex = 6,
+          endIndex = 42,
         },
         {
           kind = "para",
           lines = { "hoge" },
-          offset = 43,
-          limit = 46,
+          startIndex = 43,
+          endIndex = 46,
         },
       }
       assert.are.same(expected, actual)
@@ -217,8 +217,8 @@ describe("POD Parser", function()
         {
           kind = "para",
           lines = { "foo\n", "\n" },
-          offset = 1,
-          limit = 5,
+          startIndex = 1,
+          endIndex = 5,
         },
         {
           kind = "list",
@@ -238,14 +238,14 @@ describe("POD Parser", function()
             "=back\n",
             "\n",
           },
-          offset = 6,
-          limit = 68,
+          startIndex = 6,
+          endIndex = 68,
         },
         {
           kind = "para",
           lines = { "fuga" },
-          offset = 69,
-          limit = 72,
+          startIndex = 69,
+          endIndex = 72,
         },
       }
       assert.are.same(expected, actual)
@@ -265,8 +265,8 @@ describe("POD Parser", function()
         {
           kind = "para",
           lines = { "foo\n", "\n" },
-          offset = 1,
-          limit = 5,
+          startIndex = 1,
+          endIndex = 5,
         },
         {
           kind = "html",
@@ -278,14 +278,14 @@ describe("POD Parser", function()
             "=end html\n",
             "\n",
           },
-          offset = 6,
-          limit = 41,
+          startIndex = 6,
+          endIndex = 41,
         },
         {
           kind = "para",
           lines = { "bar" },
-          offset = 42,
-          limit = 44,
+          startIndex = 42,
+          endIndex = 44,
         },
       }
       assert.are.same(expected, actual)
@@ -296,8 +296,8 @@ describe("POD Parser", function()
         {
           kind = "para",
           lines = { "foo\n", "bar\n", "bazz" },
-          offset = 1,
-          limit = 12,
+          startIndex = 1,
+          endIndex = 12,
         },
       }
       assert.are.same(expected, actual)
@@ -318,8 +318,8 @@ describe("POD Parser", function()
         {
           kind = "para",
           lines = { "foo\n", "\n" },
-          offset = 1,
-          limit = 5,
+          startIndex = 1,
+          endIndex = 5,
         },
         {
           kind = "list",
@@ -333,8 +333,8 @@ describe("POD Parser", function()
             "=back\n",
             "hoge",
           },
-          offset = 6,
-          limit = 45,
+          startIndex = 6,
+          endIndex = 45,
         },
       }
       assert.are.same(expected, actual)
@@ -356,8 +356,8 @@ describe("POD Parser", function()
           lines = {
             "=over\n",
           },
-          offset = 1,
-          limit = 6,
+          startIndex = 1,
+          endIndex = 6,
         },
         {
           kind = "item",
@@ -365,8 +365,8 @@ describe("POD Parser", function()
             "=item foo\n",
             "\n",
           },
-          offset = 7,
-          limit = 17,
+          startIndex = 7,
+          endIndex = 17,
         },
         {
           kind = "item",
@@ -374,24 +374,24 @@ describe("POD Parser", function()
             "=item bar\n",
             "\n",
           },
-          offset = 18,
-          limit = 28,
+          startIndex = 18,
+          endIndex = 28,
         },
         {
           kind = "item",
           lines = {
             "=item bazz\n",
           },
-          offset = 29,
-          limit = 39,
+          startIndex = 29,
+          endIndex = 39,
         },
         {
           kind = "back",
           lines = {
             "=back",
           },
-          offset = 40,
-          limit = 44,
+          startIndex = 40,
+          endIndex = 44,
         },
       }
       assert.are.same(expected, actual)
@@ -415,8 +415,8 @@ describe("POD Parser", function()
           lines = {
             "=over\n",
           },
-          offset = 1,
-          limit = 6,
+          startIndex = 1,
+          endIndex = 6,
         },
         {
           kind = "item",
@@ -430,24 +430,24 @@ describe("POD Parser", function()
             "=back\n",
             "\n",
           },
-          offset = 7,
-          limit = 52,
+          startIndex = 7,
+          endIndex = 52,
         },
         {
           kind = "item",
           lines = {
             "=item hoge\n",
           },
-          offset = 53,
-          limit = 63,
+          startIndex = 53,
+          endIndex = 63,
         },
         {
           kind = "back",
           lines = {
             "=back",
           },
-          offset = 64,
-          limit = 68,
+          startIndex = 64,
+          endIndex = 68,
         },
       }
       assert.are.same(expected, actual)
@@ -464,8 +464,8 @@ describe("POD Parser", function()
           lines = {
             "=item foo bar",
           },
-          offset = 1,
-          limit = 13,
+          startIndex = 1,
+          endIndex = 13,
         },
       }
       assert.are.same(expected, actual)
@@ -486,8 +486,8 @@ describe("POD Parser", function()
             "=item foo\n",
             "bar\n",
           },
-          offset = 1,
-          limit = 14,
+          startIndex = 1,
+          endIndex = 14,
         },
         {
           kind = "list",
@@ -497,16 +497,16 @@ describe("POD Parser", function()
             "=back\n",
             "\n",
           },
-          offset = 15,
-          limit = 33,
+          startIndex = 15,
+          endIndex = 33,
         },
         {
           kind = "part",
           lines = {
             "bazz",
           },
-          offset = 34,
-          limit = 37,
+          startIndex = 34,
+          endIndex = 37,
         },
       }
       assert.are.same(expected, actual)
@@ -522,8 +522,8 @@ describe("POD Parser", function()
           lines = {
             "foo bar",
           },
-          offset = 1,
-          limit = 7,
+          startIndex = 1,
+          endIndex = 7,
         },
       }
       assert.are.same(expected, actual)
@@ -537,24 +537,24 @@ describe("POD Parser", function()
           lines = {
             "foo bar ",
           },
-          offset = 1,
-          limit = 8,
+          startIndex = 1,
+          endIndex = 8,
         },
         {
           kind = "C",
           lines = {
             "C<hoge>",
           },
-          offset = 9,
-          limit = 15,
+          startIndex = 9,
+          endIndex = 15,
         },
         {
           kind = "text",
           lines = {
             " huga",
           },
-          offset = 16,
-          limit = 20,
+          startIndex = 16,
+          endIndex = 20,
         },
       }
       assert.are.same(expected, actual)
