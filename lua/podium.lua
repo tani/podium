@@ -262,7 +262,7 @@ end
 ---@param limit? integer
 ---@return PodiumElement[]
 local function splitParagraphs(source, offset, limit)
-  offset = offset or 0 ---@cast offset integer
+  offset = offset or 1 ---@cast offset integer
   limit = limit or #source ---@cast limit integer
   local state_list = 0
   local state_para = 0
@@ -273,7 +273,7 @@ local function splitParagraphs(source, offset, limit)
   local cmd_name = ""
   local paragraphs = {}
   local lines = {}
-  for _, line in ipairs(splitLines(source)) do
+  for _, line in ipairs(splitLines(source, offset, limit)) do
     if state_list > 0 then
       table.insert(lines, line)
       if line:match("^=over") then
@@ -365,7 +365,7 @@ local function splitParagraphs(source, offset, limit)
       table.insert(paragraphs, { kind = cmd_name, lines = lines })
     end
   end
-  local offset = 1
+  local offset = offset
   for _, paragraph in ipairs(paragraphs) do
     paragraph.offset = offset
     for _, line in ipairs(paragraph.lines) do
@@ -520,32 +520,42 @@ end
 local function splitIndentBlock(source, offset, limit)
   offset = offset or 1 ---@cast offset integer
   limit = limit or #source ---@cast limit integer
-  ---@type 'begin' | 'content' | 'end'
-  local state = "begin"
+  ---@type 'over' | 'content' | 'back'
+  local state = "over"
   local over_offset = offset
-  local over_limit = 0
+  local over_limit = offset
   local back_offset = 0
   local back_limit = 0
   local content_offset = 0
   local content_limit = 0
+  local content_depth = 0
   for _, line in ipairs(splitLines(source, offset, limit)) do
-    if state == "begin" then
+    if state == "over" then
       over_limit = over_limit + #line
-      if line:match("^%s+$") then
+      if line:match("^%s*$") then
         content_offset = over_limit
         content_limit = over_limit
         over_limit = over_limit - 1
         state = "content"
       end
-    elseif state == "indent" then
-      content_limit = content_limit + #line
-      if line:match("^=back") then
-        back_offset = content_limit
-        back_limit = content_limit
-        content_limit = content_limit - 1
-        state = "end"
+    elseif state == "content" then
+      if line:match("^=over") then
+        content_depth = content_depth + 1
+        content_limit = content_limit + #line
+      elseif line:match("^=back") then
+        content_depth = content_depth - 1
+        if content_depth >= 0 then
+          content_limit = content_limit + #line
+        else
+          back_offset = content_limit
+          back_limit = content_limit + #line
+          content_limit = content_limit - 1
+          state = "back"
+        end
+      else
+        content_limit = content_limit + #line
       end
-    else ---@cast state 'end'
+    else ---@cast state 'back'
       back_limit = back_limit + #line
     end
   end

@@ -10,6 +10,98 @@ local function unindent(str)
 end
 
 describe("POD Parser", function()
+  describe("splitIndentBlock function", function()
+    it("split simple indent block", function()
+      local content = unindent([[
+      =over 8
+
+      hoge
+
+      =back
+      ]])
+      local actual = pod.splitIndentBlock(content)
+      local expected = {
+        {
+          kind = "over",
+          lines = {
+            "=over 8\n", "\n",
+          },
+          offset = 1,
+          limit = 9,
+        },
+        {
+          kind = "para",
+          lines = {
+            "hoge\n", "\n",
+          },
+          offset = 10,
+          limit = 15,
+        },
+        {
+          kind = "back",
+          lines = {
+            "=back\n",
+          },
+          offset = 16,
+          limit = 21,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+    it("split nested indent block", function()
+      local content = unindent([[
+      =over 8
+
+      hoge
+
+      =over 4
+
+      =item fuga
+
+      =back
+
+      =back
+      ]])
+      local actual = pod.splitIndentBlock(content)
+      local expected = {
+        {
+          kind = "over",
+          lines = {
+            "=over 8\n", "\n",
+          },
+          offset = 1,
+          limit = 9,
+        },
+        {
+          kind = "para",
+          lines = {
+            "hoge\n", "\n",
+          },
+          offset = 10,
+          limit = 15,
+        },
+        {
+          kind = "list",
+          lines = {
+            "=over 4\n", "\n",
+            "=item fuga\n", "\n",
+            "=back\n", "\n",
+          },
+          offset = 16,
+          limit = 43,
+        },
+        {
+          kind = "back",
+          lines = {
+            "=back\n",
+          },
+          offset = 44,
+          limit = 49,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+  end)
   describe("splitLines function", function()
     it("splits lines by \\n", function()
       local actual = pod.splitLines("foo\nbar\nbazz")
