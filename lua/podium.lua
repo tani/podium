@@ -1074,10 +1074,10 @@ local function vimdoc_head(source, startIndex, endIndex)
   if #tags > 0 then
     return append(
       tokens,
-      { { kind = "text", startIndex = -1, endIndex = -1, lines = { "~", nl }, value = "~" .. nl } },
-      { { kind = "text", startIndex = -1, endIndex = -1, lines = { string.rep(" ", padding) }, value = string.rep(" ", padding) } },
+      { { kind = "text", startIndex = -1, endIndex = -1, value = "~" .. nl } },
+      { { kind = "text", startIndex = -1, endIndex = -1, value = string.rep(" ", padding) } },
       tags,
-      { { kind = "text", startIndex = -1, endIndex = -1, lines = { nl, nl }, value = nl .. nl } }
+      { { kind = "text", startIndex = -1, endIndex = -1, value = nl .. nl } }
     )
   else
     return append(tokens, { { kind = "text", startIndex = -1, endIndex = -1, value = "~" .. nl .. nl } })
@@ -1097,12 +1097,6 @@ local vimdoc = rules({
         kind = "text",
         startIndex = -1,
         endIndex = -1,
-        lines = {
-          filename,
-          spaces,
-          description,
-          nl,
-        },
         value = filename .. spaces .. description .. nl
       },
     }
@@ -1114,10 +1108,6 @@ local vimdoc = rules({
         kind = "text",
         startIndex = -1,
         endIndex = -1,
-        lines = {
-          nl,
-          "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl,
-        },
         value = nl .. "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl
       },
     }
