@@ -11,7 +11,7 @@ end
 
 describe("POD Parser", function()
   describe("splitList function", function()
-    it("split simple indent block", function()
+    it("splits simple indent block", function()
       local content = unindent([[
       =over 8
 
@@ -22,7 +22,7 @@ describe("POD Parser", function()
       local actual = pod.splitList(content)
       local expected = {
         {
-          kind = "over",
+          kind = "over_unordered",
           lines = {
             "=over 8\n", "\n",
           },
@@ -38,7 +38,7 @@ describe("POD Parser", function()
           endIndex = 15,
         },
         {
-          kind = "back",
+          kind = "back_unordered",
           lines = {
             "=back\n",
           },
@@ -48,7 +48,7 @@ describe("POD Parser", function()
       }
       assert.are.same(expected, actual)
     end)
-    it("split nested indent block", function()
+    it("splits nested indent block", function()
       local content = unindent([[
       =over 8
 
@@ -65,7 +65,7 @@ describe("POD Parser", function()
       local actual = pod.splitList(content)
       local expected = {
         {
-          kind = "over",
+          kind = "over_unordered",
           lines = {
             "=over 8\n", "\n",
           },
@@ -84,7 +84,7 @@ describe("POD Parser", function()
           endIndex = 43,
         },
         {
-          kind = "back",
+          kind = "back_unordered",
           lines = {
             "=back\n",
           },
@@ -334,32 +334,82 @@ describe("POD Parser", function()
     end)
   end)
   describe("splitItems function", function()
+    it("split no items", function()
+      local actual = pod.splitItems(unindent([[
+        lorem ipsum
+        dolor sit amet]]))
+      local expected = {
+        {
+          kind = "para",
+          lines = {
+            "lorem ipsum\n",
+            "dolor sit amet",
+          },
+          startIndex = 1,
+          endIndex = 26,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
+    it("split no items with list", function()
+      local actual = pod.splitItems(unindent([[
+        lorem ipsum
+
+        =over
+        =item hoge
+        =item fuga
+        =back
+
+        dolor sit amet]]))
+      local expected = {
+        {
+          kind = "para",
+          lines = {
+            "lorem ipsum\n",
+            "\n",
+          },
+          startIndex = 1,
+          endIndex = 13,
+        },
+        {
+          kind = "list",
+          lines = {
+            "=over\n",
+            "=item hoge\n",
+            "=item fuga\n",
+            "=back\n",
+            "\n",
+          },
+          startIndex = 14,
+          endIndex = 48,
+        },
+        {
+          kind = "para",
+          lines = {
+            "dolor sit amet",
+          },
+          startIndex = 49,
+          endIndex = 62,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
     it("split items", function()
       local actual = pod.splitItems(unindent([[
-        =over
         =item foo
 
         =item bar
 
-        =item bazz
-        =back]]))
+        =item bazz]]))
       local expected = {
-        {
-          kind = "over",
-          lines = {
-            "=over\n",
-          },
-          startIndex = 1,
-          endIndex = 6,
-        },
         {
           kind = "item",
           lines = {
             "=item foo\n",
             "\n",
           },
-          startIndex = 7,
-          endIndex = 17,
+          startIndex = 1,
+          endIndex = 11,
         },
         {
           kind = "item",
@@ -367,31 +417,22 @@ describe("POD Parser", function()
             "=item bar\n",
             "\n",
           },
-          startIndex = 18,
-          endIndex = 28,
+          startIndex = 12,
+          endIndex = 22,
         },
         {
           kind = "item",
           lines = {
-            "=item bazz\n",
+            "=item bazz",
           },
-          startIndex = 29,
-          endIndex = 39,
-        },
-        {
-          kind = "back",
-          lines = {
-            "=back",
-          },
-          startIndex = 40,
-          endIndex = 44,
+          startIndex = 23,
+          endIndex = 32,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("split items with nested list", function()
       local actual = pod.splitItems(unindent([[
-        =over
         =item foo
 
         =over
@@ -400,17 +441,8 @@ describe("POD Parser", function()
         =item bazz
         =back
 
-        =item hoge
-        =back]]))
+        =item hoge]]))
       local expected = {
-        {
-          kind = "over",
-          lines = {
-            "=over\n",
-          },
-          startIndex = 1,
-          endIndex = 6,
-        },
         {
           kind = "item",
           lines = {
@@ -423,24 +455,16 @@ describe("POD Parser", function()
             "=back\n",
             "\n",
           },
-          startIndex = 7,
-          endIndex = 52,
+          startIndex = 1,
+          endIndex = 46,
         },
         {
           kind = "item",
           lines = {
-            "=item hoge\n",
+            "=item hoge",
           },
-          startIndex = 53,
-          endIndex = 63,
-        },
-        {
-          kind = "back",
-          lines = {
-            "=back",
-          },
-          startIndex = 64,
-          endIndex = 68,
+          startIndex = 47,
+          endIndex = 56,
         },
       }
       assert.are.same(expected, actual)
