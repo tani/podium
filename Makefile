@@ -3,6 +3,9 @@
 format:
 	stylua **/*.lua
 
+check:
+	lua-language-server --check lua/podium.lua
+
 test:
 	busted -m lua/?.lua
 

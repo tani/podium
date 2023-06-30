@@ -647,7 +647,7 @@ local function process(source, target)
     else
       elements = append(
         slice(elements, 1, i - 1),
-        { { kind = "skip", lines = element.lines, startIndex = element.startIndex, endIndex = element.endIndex, value = join(element.lines) } },
+        { { kind = "skip", startIndex = element.startIndex, endIndex = element.endIndex, value = "" } },
         slice(elements, i + 1)
       )
       i = i + 1
@@ -675,7 +675,6 @@ end
 ---@field startIndex integer
 ---@field endIndex integer
 ---@field value string
----@field lines string[]
 
 ---@alias PodiumIdentifier string
 ---@alias PodiumConvertElementSource fun(source: string, startIndex?: integer, endIndex?: integer): PodiumElement[]
@@ -761,7 +760,7 @@ local html = rules({
     local nl = guessNewline(source)
     return {
       parsed_token("<pre><code>" .. nl),
-      parsed_token(splitLines(source, startIndex, endIndex)),
+      parsed_token(source:sub(startIndex, endIndex)),
       parsed_token("</code></pre>" .. nl),
     }
   end,
@@ -1054,7 +1053,7 @@ local function vimdoc_head(source, startIndex, endIndex)
   local padding = 78
   for i, token in ipairs(tokens) do
     if token.kind == "X" then
-      padding = padding - #token.lines[1]
+      padding = padding - #token.value
       table.remove(tokens, i)
       table.insert(tags, token)
     end
@@ -1068,7 +1067,7 @@ local function vimdoc_head(source, startIndex, endIndex)
       { { kind = "text", startIndex = -1, endIndex = -1, lines = { nl, nl }, value = nl .. nl } }
     )
   else
-    return append(tokens, { { kind = "text", startIndex = -1, endIndex = -1, lines = { "~", nl, nl }, value = "~" .. nl .. nl } })
+    return append(tokens, { { kind = "text", startIndex = -1, endIndex = -1, value = "~" .. nl .. nl } })
   end
 end
 
@@ -1113,7 +1112,7 @@ local vimdoc = rules({
   head1 = function(source, startIndex, endIndex)
     local nl = guessNewline(source)
     return append(
-      { { kind = "text", startIndex = -1, endIndex = -1, lines = { string.rep("=", 78 - #nl), nl }, value = string.rep("=", 78 - #nl) .. nl } },
+      { { kind = "text", startIndex = -1, endIndex = -1, value = string.rep("=", 78 - #nl) .. nl } },
       vimdoc_head(source, startIndex, endIndex)
     )
   end,
