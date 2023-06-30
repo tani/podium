@@ -87,8 +87,6 @@ end
 ---@param endIndex? integer
 ---@return string,integer,integer
 local function trimBlank(source, startIndex, endIndex)
-  -- remove leading blank spaces and tailing blank spaces
-  -- and return the new source with the new startIndex and endIndex
   startIndex = startIndex or 1
   endIndex = endIndex or #source
   local i = startIndex
@@ -117,6 +115,7 @@ end
 local function splitLines(source, startIndex, endIndex)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
+  ---@type string[]
   local lines = {}
   local i = startIndex
   while i <= endIndex do
@@ -140,6 +139,7 @@ end
 ---@param source string
 ---@return table<string, string>
 local function parseFrontMatter(source)
+  ---@type table<string, string>
   local frontmatter = {}
   local lines = splitLines(source)
   local inside = false
@@ -283,7 +283,9 @@ local function splitParagraphs(source, startIndex, endIndex)
   local block_name = ""
   local state_cmd = 0
   local cmd_name = ""
+  ---@type PodiumElement[]
   local paragraphs = {}
+  ---@type string[]
   local lines = {}
   for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
     if state_list > 0 then
@@ -392,8 +394,10 @@ end
 local function splitItem(source, startIndex, endIndex)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
-  local lines = {}
   local state = 0
+  ---@type string[]
+  local lines = {}
+  ---@type PodiumElement[]
   local parts = {}
   for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
     if state == 0 then
@@ -439,9 +443,11 @@ end
 local function splitItems(source, startIndex, endIndex)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
+  ---@type PodiumElement[]
   local items = {}
   local state = 'nonitems'
   local allLines = splitLines(source, startIndex, endIndex)
+  ---@type string[]
   local lines = {}
   local depth = 0
   local index = 1
@@ -513,6 +519,7 @@ end
 local function splitTokens(source, startIndex, endIndex)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
+  ---@type PodiumElement[]
   local tokens = {}
   local i = startIndex
   while i <= endIndex do
@@ -556,9 +563,12 @@ local function splitList(source, startIndex, endIndex)
   local state = "over"
   local lines = splitLines(source, startIndex, endIndex)
   local list_type = 'unordered'
+  ---@type string[]
   local over_lines = {}
+  ---@type string[]
   local items_lines = {}
   local items_depth = 0
+  ---@type string[]
   local back_lines = {}
   local index = 1
   while index <= #lines do
@@ -765,6 +775,7 @@ local html = rules({
     }
   end,
   html = function(source, startIndex, endIndex)
+    ---@type string[]
     local lines = {}
     local state = 0
     for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
@@ -935,6 +946,7 @@ local markdown = rules({
     }
   end,
   html = function(source, startIndex, endIndex)
+    ---@type string[]
     local lines = {}
     local state = 0
     for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
@@ -1049,6 +1061,7 @@ local function vimdoc_head(source, startIndex, endIndex)
   startIndex = source:sub(1, endIndex):find("%s", startIndex)
   _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
   local tokens = splitTokens(source, startIndex, endIndex)
+    ---@type PodiumElement[]
   local tags = {}
   local padding = 78
   for i, token in ipairs(tokens) do
@@ -1158,6 +1171,7 @@ local vimdoc = rules({
     }
   end,
   vimdoc = function(source, startIndex, endIndex)
+    ---@type string[]
     local lines = {}
     local state = 0
     for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
@@ -1329,6 +1343,7 @@ local latex = rules({
     }
   end,
   latex = function(source, startIndex, endIndex)
+    ---@type string[]
     local lines = {}
     local state = 0
     for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
