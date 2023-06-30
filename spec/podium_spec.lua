@@ -12,38 +12,38 @@ end
 describe("POD Parser", function()
   describe("splitList function", function()
     it("splits simple indent block", function()
-      local content = unindent[[
+      local content = unindent([[
       =over 8
 
       hoge
 
       =back
-      ]]
+      ]])
       local actual = pod.splitList(content)
       local expected = {
         {
           kind = "over_unordered",
-          value = unindent[[
+          value = unindent([[
           =over 8
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 9,
         },
         {
           kind = "items",
-          value = unindent[[
+          value = unindent([[
           hoge
 
-          ]],
+          ]]),
           startIndex = 10,
           endIndex = 15,
         },
         {
           kind = "back_unordered",
-          value = unindent[[
+          value = unindent([[
           =back
-          ]],
+          ]]),
           startIndex = 16,
           endIndex = 21,
         },
@@ -51,7 +51,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits nested indent block", function()
-      local content = unindent[[
+      local content = unindent([[
       =over 8
 
       hoge
@@ -63,21 +63,21 @@ describe("POD Parser", function()
       =back
 
       =back
-      ]]
+      ]])
       local actual = pod.splitList(content)
       local expected = {
         {
           kind = "over_unordered",
-          value = unindent[[
+          value = unindent([[
           =over 8
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 9,
         },
         {
           kind = "items",
-          value = unindent[[
+          value = unindent([[
           hoge
 
           =over 4
@@ -86,15 +86,15 @@ describe("POD Parser", function()
 
           =back
 
-          ]],
+          ]]),
           startIndex = 10,
           endIndex = 43,
         },
         {
           kind = "back_unordered",
-          value = unindent[[
+          value = unindent([[
           =back
-          ]],
+          ]]),
           startIndex = 44,
           endIndex = 49,
         },
@@ -131,19 +131,19 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           foo
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 5,
         },
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           bar
 
-          ]],
+          ]]),
           startIndex = 6,
           endIndex = 10,
         },
@@ -157,7 +157,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by over-back block", function()
-      local actual = pod.splitParagraphs(unindent[[
+      local actual = pod.splitParagraphs(unindent([[
         foo
 
         =over
@@ -168,20 +168,20 @@ describe("POD Parser", function()
 
         =back
 
-        hoge]])
+        hoge]]))
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           foo
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 5,
         },
         {
           kind = "list",
-          value = unindent[[
+          value = unindent([[
           =over
 
           =item bar
@@ -190,13 +190,13 @@ describe("POD Parser", function()
 
           =back
 
-          ]],
+          ]]),
           startIndex = 6,
           endIndex = 42,
         },
         {
           kind = "para",
-          value = "hoge" ,
+          value = "hoge",
           startIndex = 43,
           endIndex = 46,
         },
@@ -204,7 +204,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by nested over-back block", function()
-      local actual = pod.splitParagraphs(unindent[[
+      local actual = pod.splitParagraphs(unindent([[
         foo
 
         =over
@@ -221,20 +221,20 @@ describe("POD Parser", function()
 
         =back
 
-        fuga]])
+        fuga]]))
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           foo
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 5,
         },
         {
           kind = "list",
-          value = unindent[[
+          value = unindent([[
           =over
 
           =item bar
@@ -249,7 +249,7 @@ describe("POD Parser", function()
 
           =back
 
-          ]],
+          ]]),
           startIndex = 6,
           endIndex = 68,
         },
@@ -263,7 +263,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by begin-end block", function()
-      local actual = pod.splitParagraphs(unindent[[
+      local actual = pod.splitParagraphs(unindent([[
         foo
 
         =begin html
@@ -272,33 +272,33 @@ describe("POD Parser", function()
 
         =end html
 
-        bar]])
+        bar]]))
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           foo
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 5,
         },
         {
           kind = "html",
-          value = unindent[[
+          value = unindent([[
           =begin html
 
           <p>bar</p>
 
           =end html
 
-          ]],
+          ]]),
           startIndex = 6,
           endIndex = 41,
         },
         {
           kind = "para",
-          value = "bar" ,
+          value = "bar",
           startIndex = 42,
           endIndex = 44,
         },
@@ -310,10 +310,10 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           foo
           bar
-          bazz]],
+          bazz]]),
           startIndex = 1,
           endIndex = 12,
         },
@@ -335,16 +335,16 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           foo
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 5,
         },
         {
           kind = "list",
-          value = unindent[[
+          value = unindent([[
           =over
 
           =item bar
@@ -352,7 +352,7 @@ describe("POD Parser", function()
           =item bazz
 
           =back
-          hoge]],
+          hoge]]),
           startIndex = 6,
           endIndex = 45,
         },
@@ -368,9 +368,9 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           lorem ipsum
-          dolor sit amet]],
+          dolor sit amet]]),
           startIndex = 1,
           endIndex = 26,
         },
@@ -390,22 +390,22 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "para",
-          value = unindent[[
+          value = unindent([[
           lorem ipsum
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 13,
         },
         {
           kind = "list",
-          value = unindent[[
+          value = unindent([[
           =over
           =item hoge
           =item fuga
           =back
 
-          ]],
+          ]]),
           startIndex = 14,
           endIndex = 48,
         },
@@ -428,26 +428,26 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "item",
-          value = unindent[[
+          value = unindent([[
           =item foo
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 11,
         },
         {
           kind = "item",
-          value = unindent[[
+          value = unindent([[
           =item bar
 
-          ]],
+          ]]),
           startIndex = 12,
           endIndex = 22,
         },
         {
           kind = "item",
-          value = unindent[[
-          =item bazz]],
+          value = unindent([[
+          =item bazz]]),
           startIndex = 23,
           endIndex = 32,
         },
@@ -468,7 +468,7 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "item",
-          value = unindent[[
+          value = unindent([[
           =item foo
 
           =over
@@ -477,7 +477,7 @@ describe("POD Parser", function()
           =item bazz
           =back
 
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 46,
         },
@@ -518,21 +518,21 @@ describe("POD Parser", function()
       local expected = {
         {
           kind = "itempart",
-          value = unindent[[
+          value = unindent([[
           =item foo
           bar
-          ]],
+          ]]),
           startIndex = 1,
           endIndex = 14,
         },
         {
           kind = "list",
-          value = unindent[[
+          value = unindent([[
           =over
           =item
           =back
 
-          ]],
+          ]]),
           startIndex = 15,
           endIndex = 33,
         },
