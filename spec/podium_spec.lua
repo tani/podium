@@ -125,7 +125,61 @@ describe("POD Parser", function()
     end)
   end)
 
-  describe("splitParagraph function", function()
+  describe("splitParagraphs function", function()
+    it("splits headings", function()
+      local actual = pod.splitParagraphs(unindent([[
+        =head1 foo
+
+
+        =head2 hoge
+
+        =head3 bar
+
+        bar
+        ]]))
+      local expected = {
+        {
+          kind = "head1",
+          value = unindent([[
+          =head1 foo
+
+          ]]),
+          startIndex = 1,
+          endIndex = 12,
+        },
+        {
+          kind = "skip",
+          value = "\n",
+          startIndex = 13,
+          endIndex = 13,
+        },
+        {
+          kind = "head2",
+          value = unindent([[
+          =head2 hoge
+
+          ]]),
+          startIndex = 14,
+          endIndex = 26,
+        },
+        {
+          kind = "head3",
+          value = unindent([[
+          =head3 bar
+
+          ]]),
+          startIndex = 27,
+          endIndex = 38,
+        },
+        {
+          kind = "para",
+          value = "bar\n",
+          startIndex = 39,
+          endIndex = 42,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
     it("splits paragraphs by empty line", function()
       local actual = pod.splitParagraphs("foo\n\nbar\n\nbazz")
       local expected = {

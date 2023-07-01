@@ -334,7 +334,9 @@ local function splitParagraphs(source, startIndex, endIndex)
         state_cmd = 0
       end
     else
-      if line:match("^=over") then
+      if line:match("^%s+$") then
+        table.insert(paragraphs, { kind = "skip", value = line })
+      elseif line:match("^=over") then
         table.insert(lines, line)
         state_list = 2
       elseif line:match("^=begin") then
