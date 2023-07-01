@@ -435,6 +435,7 @@ local function splitItems(source, startIndex, endIndex)
   endIndex = endIndex or #source
   ---@type PodiumElement[]
   local items = {}
+  ---@type "nonitems"|"items"
   local state = "nonitems"
   local allLines = splitLines(source, startIndex, endIndex)
   ---@type string[]
