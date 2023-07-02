@@ -1339,7 +1339,7 @@ local vimdoc = rules({
   head1 = function(state)
     local nl = guessNewline(state.source)
     return append(
-      parsed_token(string.rep("=", 78 - #nl) .. nl),
+      { parsed_token(string.rep("=", 78 - #nl) .. nl) },
       vimdoc_head(state)
     )
   end,
