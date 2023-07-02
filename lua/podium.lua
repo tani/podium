@@ -883,6 +883,14 @@ local function splitList(element)
       element.startIndex,
       over_endIndex,
       (element.indentLevel + indentLevel),
+      "text",
+      guessNewline(element.source)
+    ),
+    PodiumElement.new(
+      element.source,
+      element.startIndex,
+      over_endIndex,
+      (element.indentLevel + indentLevel),
       "over",
       table.concat(over_lines),
       { listStyle = list_type }
@@ -899,11 +907,19 @@ local function splitList(element)
       element.source,
       back_startIndex,
       back_endIndex,
-      element.indentLevel,
+      (element.indentLevel + indentLevel),
       "back",
       table.concat(back_lines),
       { listStyle = list_type }
     ),
+    PodiumElement.new(
+      element.source,
+      back_endIndex + 1,
+      element.endIndex,
+      element.indentLevel,
+      "text",
+      guessNewline(element.source)
+    )
   }
 end
 
@@ -1050,9 +1066,9 @@ local html = rules({
   over = function(element)
     local nl = guessNewline(element.source)
     if element.listStyle == "ordered" then
-      return { parsed_token(nl .. "<ol>" .. nl, element.indentLevel, element.source) }
+      return { parsed_token("<ol>" .. nl, element.indentLevel, element.source) }
     else
-      return { parsed_token(nl .. "<ul>" .. nl, element.indentLevel, element.source) }
+      return { parsed_token("<ul>" .. nl, element.indentLevel, element.source) }
     end
   end,
   back = function(element)
@@ -1259,11 +1275,11 @@ local markdown = rules({
   end,
   over = function(element)
     local nl = guessNewline(element.source)
-    return { parsed_token(nl, element.indentLevel, element.source) }
+    return {}
   end,
   back = function(element)
     local nl = guessNewline(element.source)
-    return { parsed_token(nl, element.indentLevel, element.source) }
+    return {}
   end,
   cut = function(element)
     return {}
@@ -1474,11 +1490,11 @@ local vimdoc = rules({
   end,
   over = function(element)
     local nl = guessNewline(element.source)
-    return { parsed_token(nl, element.indentLevel, element.source) }
+    return {}
   end,
   back = function(element)
     local nl = guessNewline(element.source)
-    return { parsed_token(nl, element.indentLevel, element.source) }
+    return {}
   end,
   cut = function(element)
     return {}
@@ -1674,9 +1690,9 @@ local latex = rules({
   over = function(element)
     local nl = guessNewline(element.source)
     if element.listStyle == "ordered" then
-      return { parsed_token(nl .. "\\begin{enumerate}" .. nl, element.indentLevel, element.source) }
+      return { parsed_token("\\begin{enumerate}" .. nl, element.indentLevel, element.source) }
     else
-      return { parsed_token(nl .. "\\begin{itemize}" .. nl, element.indentLevel, element.source) }
+      return { parsed_token("\\begin{itemize}" .. nl, element.indentLevel, element.source) }
     end
   end,
   back = function(element)
