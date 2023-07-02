@@ -364,13 +364,13 @@ local function splitParagraphs(state)
     elseif state_para > 0 then
       table.insert(lines, line)
       if state_para == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = "para", value = table.concat(lines), indentLevel = state.indentLevel  })
+        table.insert(paragraphs, { kind = "para", value = table.concat(lines), indentLevel = state.indentLevel })
         state_para = 0
         lines = {}
       end
     elseif state_verb > 0 then
       if state_verb == 1 and line:match("^%S") then
-        table.insert(paragraphs, { kind = "verb", value = table.concat(lines), indentLevel = state.indentLevel  })
+        table.insert(paragraphs, { kind = "verb", value = table.concat(lines), indentLevel = state.indentLevel })
         lines = { line }
         state_verb = 0
         if line:match("^=over") then
@@ -396,20 +396,20 @@ local function splitParagraphs(state)
         state_block = 1
       end
       if state_block == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = block_name, value = table.concat(lines), indentLevel = state.indentLevel  })
+        table.insert(paragraphs, { kind = block_name, value = table.concat(lines), indentLevel = state.indentLevel })
         lines = {}
         state_block = 0
       end
     elseif state_cmd > 0 then
       table.insert(lines, line)
       if state_cmd == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines), indentLevel = state.indentLevel  })
+        table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines), indentLevel = state.indentLevel })
         lines = {}
         state_cmd = 0
       end
     else
       if line:match("^%s+$") then
-        table.insert(paragraphs, { kind = "skip", value = line, indentLevel = state.indentLevel  })
+        table.insert(paragraphs, { kind = "skip", value = line, indentLevel = state.indentLevel })
       elseif line:match("^=over") then
         table.insert(lines, line)
         state_list = 2
@@ -432,15 +432,15 @@ local function splitParagraphs(state)
   end
   if #lines > 0 then
     if state_list > 0 then
-      table.insert(paragraphs, { kind = "list", value = table.concat(lines), indentLevel = state.indentLevel  })
+      table.insert(paragraphs, { kind = "list", value = table.concat(lines), indentLevel = state.indentLevel })
     elseif state_para > 0 then
-      table.insert(paragraphs, { kind = "para", value = table.concat(lines), indentLevel = state.indentLevel  })
+      table.insert(paragraphs, { kind = "para", value = table.concat(lines), indentLevel = state.indentLevel })
     elseif state_verb > 0 then
-      table.insert(paragraphs, { kind = "verb", value = table.concat(lines), indentLevel = state.indentLevel  })
+      table.insert(paragraphs, { kind = "verb", value = table.concat(lines), indentLevel = state.indentLevel })
     elseif state_block > 0 then
-      table.insert(paragraphs, { kind = block_name, value = table.concat(lines), indentLevel = state.indentLevel  })
+      table.insert(paragraphs, { kind = block_name, value = table.concat(lines), indentLevel = state.indentLevel })
     elseif state_cmd > 0 then
-      table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines), indentLevel = state.indentLevel  })
+      table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines), indentLevel = state.indentLevel })
     end
   end
   for _, paragraph in ipairs(paragraphs) do
@@ -706,13 +706,15 @@ local function process(source, target)
     else
       elements = append(
         slice(elements, 1, i - 1),
-        { PodiumElement.new(
-          "skip",
-          source:sub(element.startIndex, element.endIndex),
-          element.startIndex,
-          element.endIndex,
-          0
-        ) },
+        {
+          PodiumElement.new(
+            "skip",
+            source:sub(element.startIndex, element.endIndex),
+            element.startIndex,
+            element.endIndex,
+            0
+          ),
+        },
         slice(elements, i + 1)
       )
       i = i + 1
