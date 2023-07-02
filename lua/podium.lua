@@ -30,6 +30,83 @@ SOFTWARE.
 local M = {}
 local _ -- dummy
 
+---@alias PodiumElementKindInlineCmd
+---| 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
+---| 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+---@alias PodiumElementKindBlockCmd
+---| 'pod'
+---| 'cut'
+---| 'encoding'
+---| 'over_unordered'
+---| 'over_ordered'
+---| 'item'
+---| 'back_unordered'
+---| 'back_ordered'
+---| 'verb'
+---| 'for'
+---| 'head1'
+---| 'head2'
+---| 'head3'
+---| 'head4'
+---@alias PodiumElementKindInternalConstituent
+---| 'list'
+---| 'items'
+---| 'itempart'
+---| 'para'
+---| 'text'
+---| 'preamble'
+---| 'postamble'
+---| 'skip'
+---@alias PodiumElementKind
+---| PodiumElementKindBlockCmd
+---| PodiumElementKindInlineCmd
+---| PodiumElementKindInternalConstituent
+---| string
+---@class PodiumElement
+---@field kind PodiumElementKind
+---@field value string
+---@field startIndex integer
+---@field endIndex integer
+
+local PodiumElement = {}
+
+---@param value string The content text of the element
+---@param kind PodiumElementKind The kind of the element
+---@param indent integer The first character of the line following a line break is indented at this indent size.
+---@param startIndex integer The index of the first character of the element in the source text.
+---@param endIndex integer The index of the last character of the element in the source text.
+---@return PodiumElement
+function PodiumElement.new(kind, value, startIndex, endIndex, indent)
+  return setmetatable({
+    kind = kind,
+    value = value,
+    startIndex = startIndex,
+    endIndex = endIndex,
+    indent = indent,
+  }, { __index = PodiumElement })
+end
+
+---@class PodiumState
+---@field source string
+---@field startIndex integer
+---@field endIndex integer
+---@field indentLevel integer
+
+local PodiumState = {}
+
+---@param source string
+---@param startIndex? integer (default: 1)
+---@param endIndex? integer (default: #source)
+---@param indentLevel? integer (default: 0)
+function PodiumState.new(source, startIndex, endIndex, indentLevel)
+  return setmetatable({
+    source = source,
+    startIndex = startIndex or 1,
+    endIndex = endIndex or #source,
+    indentLevel = indentLevel or 0,
+  }, { __index = PodiumState })
+end
+
 ---@param t table
 ---@param indent? number  always 0
 local function debug(t, indent)
@@ -96,54 +173,46 @@ local function guessNewline(source)
   return "\n"
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return string,integer,integer
-local function trimBlank(source, startIndex, endIndex)
-  startIndex = startIndex or 1
-  endIndex = endIndex or #source
-  local i = startIndex
-  while i <= endIndex do
-    if source:sub(i, i):match("%s") then
+---@param state PodiumState
+---@return PodiumState
+local function trimBlank(state)
+  local i = state.startIndex
+  while i <= state.endIndex do
+    if state.source:sub(i, i):match("%s") then
       i = i + 1
     else
       break
     end
   end
-  local j = endIndex
+  local j = state.endIndex
   while j >= i do
-    if source:sub(j, j):match("%s") then
+    if state.source:sub(j, j):match("%s") then
       j = j - 1
     else
       break
     end
   end
-  return source:sub(i, j), i, j
+  return PodiumState.new(state.source:sub(i, j), i, j, state.indentLevel)
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
+---@param state PodiumState
 ---@return string[]
-local function splitLines(source, startIndex, endIndex)
-  startIndex = startIndex or 1
-  endIndex = endIndex or #source
+local function splitLines(state)
   ---@type string[]
   local lines = {}
-  local i = startIndex
-  while i <= endIndex do
-    local j = source:sub(1, endIndex):find("[\r\n]", i)
+  local i = state.startIndex
+  while i <= state.endIndex do
+    local j = state.source:sub(1, state.endIndex):find("[\r\n]", i)
     if j == nil then
-      table.insert(lines, source:sub(i, endIndex))
-      i = endIndex + 1
+      table.insert(lines, state.source:sub(i, state.endIndex))
+      i = state.endIndex + 1
     else
-      if source:sub(j, j) == "\r" then
-        if source:sub(j + 1, j + 1) == "\n" then
+      if state.source:sub(j, j) == "\r" then
+        if state.source:sub(j + 1, j + 1) == "\n" then
           j = j + 1
         end
       end
-      table.insert(lines, source:sub(i, j))
+      table.insert(lines, state.source:sub(i, j))
       i = j + 1
     end
   end
@@ -155,7 +224,7 @@ end
 local function parseFrontMatter(source)
   ---@type table<string, string>
   local frontmatter = {}
-  local lines = splitLines(source)
+  local lines = splitLines(PodiumState.new(source))
   local inside = false
   for _, line in ipairs(lines) do
     if inside then
@@ -205,7 +274,7 @@ end
 ---@param source string
 ---@param startIndex? integer
 ---@param endIndex? integer
----@return integer|nil,integer?,integer?,integer?
+---@return integer,integer,integer,integer
 local function findInline(source, startIndex, endIndex)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
@@ -242,23 +311,7 @@ local function findInline(source, startIndex, endIndex)
           end
           if source:sub(i, i) == "<" then
             if source:sub(i - 1, i - 1):match("[A-Z]") then
-              local _, _, _, e_cmd = findInline(source, i - 1)
-              if e_cmd then
-                i = e_cmd
-              else
-                local row, col = indexToRowCol(source, i - 1)
-                error(
-                  "ERROR:"
-                    .. row
-                    .. ":"
-                    .. col
-                    .. ":"
-                    .. "Failed to find the end of command '"
-                    .. source:sub(i - 1, i)
-                    .. "'"
-                )
-              end
-              i = e_cmd or i
+              _, _, _, i = findInline(source, i - 1)
             end
           end
           i = i + 1
@@ -280,16 +333,11 @@ local function findInline(source, startIndex, endIndex)
       end
     end
   end
-  return nil
+  error("Failed to find inline command")
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return PodiumElement[]
-local function splitParagraphs(source, startIndex, endIndex)
-  startIndex = startIndex or 1 ---@cast startIndex integer
-  endIndex = endIndex or #source ---@cast endIndex integer
+---@type PodiumConvertElementSource
+local function splitParagraphs(state)
   local state_list = 0
   local state_para = 0
   local state_verb = 0
@@ -301,7 +349,7 @@ local function splitParagraphs(source, startIndex, endIndex)
   local paragraphs = {}
   ---@type string[]
   local lines = {}
-  for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
+  for _, line in ipairs(splitLines(state)) do
     if state_list > 0 then
       table.insert(lines, line)
       if line:match("^=over") then
@@ -309,20 +357,20 @@ local function splitParagraphs(source, startIndex, endIndex)
       elseif line:match("^=back") then
         state_list = state_list - 1
       elseif state_list == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = "list", value = table.concat(lines) })
+        table.insert(paragraphs, { kind = "list", value = table.concat(lines), indentLevel = state.indentLevel })
         state_list = 0
         lines = {}
       end
     elseif state_para > 0 then
       table.insert(lines, line)
       if state_para == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = "para", value = table.concat(lines) })
+        table.insert(paragraphs, { kind = "para", value = table.concat(lines), indentLevel = state.indentLevel  })
         state_para = 0
         lines = {}
       end
     elseif state_verb > 0 then
       if state_verb == 1 and line:match("^%S") then
-        table.insert(paragraphs, { kind = "verb", value = table.concat(lines) })
+        table.insert(paragraphs, { kind = "verb", value = table.concat(lines), indentLevel = state.indentLevel  })
         lines = { line }
         state_verb = 0
         if line:match("^=over") then
@@ -348,20 +396,20 @@ local function splitParagraphs(source, startIndex, endIndex)
         state_block = 1
       end
       if state_block == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = block_name, value = table.concat(lines) })
+        table.insert(paragraphs, { kind = block_name, value = table.concat(lines), indentLevel = state.indentLevel  })
         lines = {}
         state_block = 0
       end
     elseif state_cmd > 0 then
       table.insert(lines, line)
       if state_cmd == 1 and line:match("^%s+$") then
-        table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines) })
+        table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines), indentLevel = state.indentLevel  })
         lines = {}
         state_cmd = 0
       end
     else
       if line:match("^%s+$") then
-        table.insert(paragraphs, { kind = "skip", value = line })
+        table.insert(paragraphs, { kind = "skip", value = line, indentLevel = state.indentLevel  })
       elseif line:match("^=over") then
         table.insert(lines, line)
         state_list = 2
@@ -384,42 +432,37 @@ local function splitParagraphs(source, startIndex, endIndex)
   end
   if #lines > 0 then
     if state_list > 0 then
-      table.insert(paragraphs, { kind = "list", value = table.concat(lines) })
+      table.insert(paragraphs, { kind = "list", value = table.concat(lines), indentLevel = state.indentLevel  })
     elseif state_para > 0 then
-      table.insert(paragraphs, { kind = "para", value = table.concat(lines) })
+      table.insert(paragraphs, { kind = "para", value = table.concat(lines), indentLevel = state.indentLevel  })
     elseif state_verb > 0 then
-      table.insert(paragraphs, { kind = "verb", value = table.concat(lines) })
+      table.insert(paragraphs, { kind = "verb", value = table.concat(lines), indentLevel = state.indentLevel  })
     elseif state_block > 0 then
-      table.insert(paragraphs, { kind = block_name, value = table.concat(lines) })
+      table.insert(paragraphs, { kind = block_name, value = table.concat(lines), indentLevel = state.indentLevel  })
     elseif state_cmd > 0 then
-      table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines) })
+      table.insert(paragraphs, { kind = cmd_name, value = table.concat(lines), indentLevel = state.indentLevel  })
     end
   end
   for _, paragraph in ipairs(paragraphs) do
-    paragraph.startIndex = startIndex
-    paragraph.endIndex = startIndex + #paragraph.value - 1
-    startIndex = paragraph.endIndex + 1
+    paragraph.startIndex = state.startIndex
+    paragraph.endIndex = state.startIndex + #paragraph.value - 1
+    state.startIndex = paragraph.endIndex + 1
   end
   return paragraphs
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return PodiumElement[]
-local function splitItem(source, startIndex, endIndex)
-  startIndex = startIndex or 1
-  endIndex = endIndex or #source
-  local state = 0
+---@type PodiumConvertElementSource
+local function splitItem(state)
+  local itemState = 0
   ---@type string[]
   local lines = {}
   ---@type PodiumElement[]
   local parts = {}
-  for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
-    if state == 0 then
+  for _, line in ipairs(splitLines(state)) do
+    if itemState == 0 then
       if line:match("^=over") then
-        table.insert(parts, { kind = "itempart", value = table.concat(lines) })
-        state = state + 2
+        table.insert(parts, { kind = "itempart", value = table.concat(lines), indentLevel = state.indentLevel })
+        itemState = itemState + 2
         lines = { line }
       else
         table.insert(lines, line)
@@ -427,23 +470,24 @@ local function splitItem(source, startIndex, endIndex)
     else
       table.insert(lines, line)
       if line:match("^=over") then
-        state = state + 1
+        itemState = itemState + 1
       elseif line:match("^=back") then
-        state = state - 1
-      elseif state == 1 and line:match("^%s+$") then
-        table.insert(parts, { kind = "list", value = table.concat(lines) })
+        itemState = itemState - 1
+      elseif itemState == 1 and line:match("^%s+$") then
+        table.insert(parts, { kind = "list", value = table.concat(lines), indentLevel = state.indentLevel })
         lines = {}
-        state = 0
+        itemState = 0
       end
     end
   end
   if #lines > 0 then
-    if state > 0 then
-      table.insert(parts, { kind = "list", value = table.concat(lines) })
+    if itemState > 0 then
+      table.insert(parts, { kind = "list", value = table.concat(lines), indentLevel = state.indentLevel })
     else
-      table.insert(parts, { kind = "itempart", value = table.concat(lines) })
+      table.insert(parts, { kind = "itempart", value = table.concat(lines), indentLevel = state.indentLevel })
     end
   end
+  local startIndex = state.startIndex
   for _, part in ipairs(parts) do
     part.startIndex = startIndex
     part.endIndex = startIndex + #part.value - 1
@@ -452,33 +496,28 @@ local function splitItem(source, startIndex, endIndex)
   return parts
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return PodiumElement[]
-local function splitItems(source, startIndex, endIndex)
-  startIndex = startIndex or 1
-  endIndex = endIndex or #source
+---@type PodiumConvertElementSource
+local function splitItems(state)
   ---@type PodiumElement[]
   local items = {}
   ---@type "nonitems"|"items"
-  local state = "nonitems"
-  local allLines = splitLines(source, startIndex, endIndex)
+  local itemsState = "nonitems"
+  local allLines = splitLines(state)
   ---@type string[]
   local lines = {}
   local depth = 0
   local index = 1
   while index <= #allLines do
     local line = allLines[index]
-    if state == "nonitems" then
+    if itemsState == "nonitems" then
       if line:match("^=item") then
         if depth == 0 then
           if #lines > 0 then
-            local row, col = indexToRowCol(source, startIndex)
+            local row, col = indexToRowCol(state.source, state.startIndex)
             error("ERROR:" .. row .. ":" .. col .. ": non-item lines should not precede an item")
           end
           lines = { line }
-          state = "items"
+          itemsState = "items"
           index = index + 1
         else
           index = index + 1
@@ -492,10 +531,10 @@ local function splitItems(source, startIndex, endIndex)
       else
         index = index + 1
       end
-    elseif state == "items" then
+    elseif itemsState == "items" then
       if line:match("^=item") then
         if depth == 0 then
-          table.insert(items, { kind = "item", value = table.concat(lines) })
+          table.insert(items, { kind = "item", value = table.concat(lines), indentLevel = state.indentLevel })
           lines = { line }
           index = index + 1
         else
@@ -516,11 +555,12 @@ local function splitItems(source, startIndex, endIndex)
       end
     end
   end
-  if state == "items" then
-    table.insert(items, { kind = "item", value = table.concat(lines) })
+  if itemsState == "items" then
+    table.insert(items, { kind = "item", value = table.concat(lines), indentLevel = state.indentLevel })
   else
-    return splitParagraphs(source, startIndex, endIndex)
+    return splitParagraphs(state)
   end
+  local startIndex = state.startIndex
   for _, item in ipairs(items) do
     item.startIndex = startIndex
     item.endIndex = startIndex + #item.value - 1
@@ -529,55 +569,48 @@ local function splitItems(source, startIndex, endIndex)
   return items
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return PodiumElement[]
-local function splitTokens(source, startIndex, endIndex)
-  startIndex = startIndex or 1
-  endIndex = endIndex or #source
+---@type PodiumConvertElementSource
+local function splitTokens(state)
   ---@type PodiumElement[]
   local tokens = {}
-  local i = startIndex
-  while i <= endIndex do
-    local b_cmd, _, _, e_cmd = findInline(source, i, endIndex)
-    if b_cmd then
+  local i = state.startIndex
+  while i <= state.endIndex do
+    local ok, b_cmd, _, _, e_cmd = pcall(findInline, state.source, i, state.endIndex)
+    if ok then
       table.insert(tokens, {
         kind = "text",
         startIndex = i,
         endIndex = b_cmd - 1,
-        value = source:sub(i, b_cmd - 1),
+        value = state.source:sub(i, b_cmd - 1),
+        indentLevel = state.indentLevel,
       })
       table.insert(tokens, {
-        kind = source:sub(b_cmd, b_cmd),
+        kind = state.source:sub(b_cmd, b_cmd),
         startIndex = b_cmd,
         endIndex = e_cmd,
-        value = source:sub(b_cmd, e_cmd),
+        value = state.source:sub(b_cmd, e_cmd),
+        indentLevel = state.indentLevel,
       })
       i = e_cmd + 1
     else
       table.insert(tokens, {
         kind = "text",
         startIndex = i,
-        endIndex = endIndex,
-        value = source:sub(i, endIndex),
+        endIndex = state.endIndex,
+        value = state.source:sub(i, state.endIndex),
+        indentLevel = state.indentLevel,
       })
-      i = endIndex + 1
+      i = state.endIndex + 1
     end
   end
   return tokens
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return PodiumElement[]
-local function splitList(source, startIndex, endIndex)
-  startIndex = startIndex or 1 ---@cast startIndex integer
-  endIndex = endIndex or #source ---@cast endIndex integer
+---@type PodiumConvertElementSource
+local function splitList(state)
   ---@type 'over' | 'items' | 'back'
-  local state = "over"
-  local lines = splitLines(source, startIndex, endIndex)
+  local listState = "over"
+  local lines = splitLines(state)
   local list_type = "unordered"
   ---@type string[]
   local over_lines = {}
@@ -589,13 +622,13 @@ local function splitList(source, startIndex, endIndex)
   local index = 1
   while index <= #lines do
     local line = lines[index]
-    if state == "over" then
+    if listState == "over" then
       table.insert(over_lines, line)
       if line:match("^%s*$") then
-        state = "items"
+        listState = "items"
       end
       index = index + 1
-    elseif state == "items" then
+    elseif listState == "items" then
       if line:match("^=over") then
         items_depth = items_depth + 1
         table.insert(items_lines, line)
@@ -606,7 +639,7 @@ local function splitList(source, startIndex, endIndex)
           table.insert(items_lines, line)
           index = index + 1
         else
-          state = "back"
+          listState = "back"
         end
       elseif line:match("^=item") then
         if items_depth == 0 then
@@ -625,7 +658,7 @@ local function splitList(source, startIndex, endIndex)
       index = index + 1
     end
   end
-  local over_endIndex = startIndex
+  local over_endIndex = state.startIndex
   for _, line in ipairs(over_lines) do
     over_endIndex = over_endIndex + #line
   end
@@ -643,26 +676,16 @@ local function splitList(source, startIndex, endIndex)
   end
   back_endIndex = back_endIndex - 1
   return {
-    {
-      kind = "over_" .. list_type,
-      startIndex = startIndex,
-      endIndex = over_endIndex,
-      value = table.concat(over_lines),
-    },
-    { kind = "items", startIndex = items_startIndex, endIndex = items_endIndex, value = table.concat(items_lines) },
-    {
-      kind = "back_" .. list_type,
-      startIndex = back_startIndex,
-      endIndex = back_endIndex,
-      value = table.concat(back_lines),
-    },
+    PodiumElement.new("over_" .. list_type, table.concat(over_lines), state.startIndex, over_endIndex, 0),
+    PodiumElement.new("items", table.concat(items_lines), items_startIndex, items_endIndex, 0),
+    PodiumElement.new("back_" .. list_type, table.concat(back_lines), back_startIndex, back_endIndex, 0),
   }
 end
 
 ---@param source string
 ---@param target PodiumConverter
 local function process(source, target)
-  local elements = splitParagraphs(source)
+  local elements = splitParagraphs(PodiumState.new(source))
   local shouldProcess = false
   local i = 1
   while i <= #elements do
@@ -676,14 +699,20 @@ local function process(source, target)
       else
         elements = append(
           slice(elements, 1, i - 1),
-          target[element.kind](source, element.startIndex, element.endIndex),
+          target[element.kind](PodiumState.new(source, element.startIndex, element.endIndex)),
           slice(elements, i + 1)
         )
       end
     else
       elements = append(
         slice(elements, 1, i - 1),
-        { { kind = "skip", startIndex = element.startIndex, endIndex = element.endIndex, value = "" } },
+        PodiumElement.new(
+          "skip",
+          source:sub(element.startIndex, element.endIndex),
+          element.startIndex,
+          element.endIndex,
+          0
+        ),
         slice(elements, i + 1)
       )
       i = i + 1
@@ -692,7 +721,11 @@ local function process(source, target)
       shouldProcess = false
     end
   end
-  elements = append(target["preamble"](source, 1, #source), elements, target["postamble"](source, 1, #source))
+  elements = append(
+    target["preamble"](PodiumState.new(source, 1, #source)),
+    elements,
+    target["postamble"](PodiumState.new(source, 1, #source))
+  )
   local output = ""
   for _, element in ipairs(elements) do
     if element.kind ~= "skip" then
@@ -702,19 +735,8 @@ local function process(source, target)
   return output
 end
 
----@alias PodiumElementKindInlineCmd 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
----@alias PodiumElementKindBlockCmd 'pod' | 'cut' | 'encoding' | 'over_unordered' | 'over_ordered' | 'item' | 'back_unordered' | 'back_ordered' | 'verb' | 'for' | 'head1' | 'head2' | 'head3' | 'head4'
----@alias PodiumElementKindInternalConstituent  'list' | 'items' | 'itempart' | 'para' | 'text' | 'preamble' | 'postamble' | 'skip'
----@alias PodiumElementKind PodiumElementKindBlockCmd | PodiumElementKindInlineCmd | PodiumElementKindInternalConstituent | string
----@class PodiumElement
----@field kind PodiumElementKind
----@field startIndex integer
----@field endIndex integer
----@field value string
-
----@alias PodiumIdentifier string
----@alias PodiumConvertElementSource fun(source: string, startIndex?: integer, endIndex?: integer): PodiumElement[]
----@alias PodiumConverter table<PodiumIdentifier, PodiumConvertElementSource>
+---@alias PodiumConvertElementSource fun(state: PodiumState): PodiumElement[]
+---@alias PodiumConverter table<PodiumElementKind, PodiumConvertElementSource>
 
 ---@param tbl PodiumConverter
 ---@return PodiumConverter
@@ -731,85 +753,85 @@ end
 ---@param value string
 ---@return PodiumElement
 local function parsed_token(value)
-  return { kind = "text", startIndex = -1, endIndex = -1, value = value }
+  return PodiumElement.new("text", value, -1, -1, 0)
 end
 
 local html = rules({
-  preamble = function(_source, _startIndex, _endIndex)
+  preamble = function(state)
     return {}
   end,
-  postamble = function(_source, _startIndex, _endIndex)
+  postamble = function(state)
     return {}
   end,
-  head1 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<h1>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</h1>" .. nl) })
+  head1 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<h1>") }, splitTokens(state), { parsed_token("</h1>" .. nl) })
   end,
-  head2 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<h2>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</h2>" .. nl) })
+  head2 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<h2>") }, splitTokens(state), { parsed_token("</h2>" .. nl) })
   end,
-  head3 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<h3>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</h3>" .. nl) })
+  head3 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<h3>") }, splitTokens(state), { parsed_token("</h3>" .. nl) })
   end,
-  head4 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<h4>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</h4>" .. nl) })
+  head4 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<h4>") }, splitTokens(state), { parsed_token("</h4>" .. nl) })
   end,
-  para = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<p>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</p>" .. nl) })
+  para = function(state)
+    local nl = guessNewline(state.source)
+    state = trimBlank(state)
+    return append({ parsed_token("<p>") }, splitTokens(state), { parsed_token("</p>" .. nl) })
   end,
-  over_unordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  over_unordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("<ul>" .. nl) }
   end,
-  over_ordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  over_ordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("<ol>" .. nl) }
   end,
-  back_unordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  back_unordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("</ul>" .. nl) }
   end,
-  back_ordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  back_ordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("</ol>" .. nl) }
   end,
-  cut = function(_source, _startIndex, _endIndex)
+  cut = function(state)
     return {}
   end,
-  pod = function(_source, _startIndex, _endIndex)
+  pod = function(state)
     return {}
   end,
-  verb = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
+  verb = function(state)
+    local nl = guessNewline(state.source)
     return {
       parsed_token("<pre><code>" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("</code></pre>" .. nl),
     }
   end,
-  html = function(source, startIndex, endIndex)
+  html = function(state)
     ---@type string[]
     local lines = {}
-    local state = 0
-    for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
-      if state == 0 then
+    local blockState = 0
+    for _, line in ipairs(splitLines(state)) do
+      if blockState == 0 then
         if line:match("^=begin") then
-          state = 1
+          blockState = 1
         elseif line:match("^=end") then
-          state = 0
+          blockState = 0
         end
       else
         table.insert(lines, line)
@@ -817,166 +839,162 @@ local html = rules({
     end
     return { parsed_token(table.concat(lines)) }
   end,
-  item = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex = source:sub(1, endIndex):find("^=item%s*[*0-9]*%.?.", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<li>") }, splitItem(source, startIndex, endIndex), { parsed_token("</li>" .. nl) })
+  item = function(state)
+    local nl = guessNewline(state.source)
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("^=item%s*[*0-9]*%.?.", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<li>") }, splitItem(state), { parsed_token("</li>" .. nl) })
   end,
-  ["for"] = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex = source:sub(1, endIndex):find("=for%s+%S+%s", startIndex)
+  ["for"] = function(state)
+    local nl = guessNewline(state.source)
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("=for%s+%S+%s", state.startIndex)
     return {
       parsed_token("<pre><code>" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("</code></pre>" .. nl),
     }
   end,
-  list = function(source, startIndex, endIndex)
-    return splitList(source, startIndex, endIndex)
+  list = function(state)
+    return splitList(state)
   end,
-  items = function(source, startIndex, endIndex)
-    return splitItems(source, startIndex, endIndex)
+  items = function(state)
+    return splitItems(state)
   end,
-  itempart = function(source, startIndex, endIndex)
-    return splitTokens(source, startIndex, endIndex)
+  itempart = function(state)
+    return splitTokens(state)
   end,
-  I = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<em>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</em>") })
+  I = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<em>") }, splitTokens(state), { parsed_token("</em>") })
   end,
-  B = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append(
-      { parsed_token("<strong>") },
-      splitTokens(source, startIndex, endIndex),
-      { parsed_token("</strong>") }
-    )
+  B = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<strong>") }, splitTokens(state), { parsed_token("</strong>") })
   end,
-  C = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("<code>") }, splitTokens(source, startIndex, endIndex), { parsed_token("</code>") })
+  C = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("<code>") }, splitTokens(state), { parsed_token("</code>") })
   end,
-  L = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local b, e = source:sub(1, endIndex):find("[^|]*|", startIndex)
+  L = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    local b, e = state.source:sub(1, state.endIndex):find("[^|]*|", state.startIndex)
     if b then
       return append(
         { parsed_token('<a href="') },
-        splitTokens(source, e + 1, endIndex),
+        splitTokens(PodiumState.new(state.source, e + 1, state.endIndex)),
         { parsed_token('">') },
-        splitTokens(source, b, e - 1),
+        splitTokens(PodiumState.new(state.source, b, e - 1)),
         { parsed_token("</a>") }
       )
     else
       return append(
         { parsed_token('<a href="') },
-        splitTokens(source, startIndex, endIndex),
+        splitTokens(state),
         { parsed_token('">') },
-        splitTokens(source, startIndex, endIndex),
+        splitTokens(state),
         { parsed_token("</a>") }
       )
     end
   end,
-  E = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local arg = source:sub(startIndex, endIndex)
+  E = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    local arg = state.source:sub(state.startIndex, state.endIndex)
     return { parsed_token("&" .. arg .. ";") }
   end,
-  X = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token('<a name="') }, splitTokens(source, startIndex, endIndex), { parsed_token('"></a>') })
+  X = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token('<a name="') }, splitTokens(state), { parsed_token('"></a>') })
   end,
-  Z = function(_source, _startIndex, _endIndex)
+  Z = function(state)
     return {}
   end,
 })
 
 local markdown_list_level = 0
 local markdown = rules({
-  preamble = function(_source, _startIndex, _endIndex)
+  preamble = function(state)
     return {}
   end,
-  postamble = function(_source, _startIndex, _endIndex)
+  postamble = function(state)
     return {}
   end,
-  head1 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("# ") }, splitTokens(source, startIndex, endIndex), { parsed_token(nl .. nl) })
+  head1 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("# ") }, splitTokens(state), { parsed_token(nl .. nl) })
   end,
-  head2 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("## ") }, splitTokens(source, startIndex, endIndex), { parsed_token(nl .. nl) })
+  head2 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("## ") }, splitTokens(state), { parsed_token(nl .. nl) })
   end,
-  head3 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("### ") }, splitTokens(source, startIndex, endIndex), { parsed_token(nl .. nl) })
+  head3 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("### ") }, splitTokens(state), { parsed_token(nl .. nl) })
   end,
-  head4 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("#### ") }, splitTokens(source, startIndex, endIndex), { parsed_token(nl .. nl) })
+  head4 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("#### ") }, splitTokens(state), { parsed_token(nl .. nl) })
   end,
-  para = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append(splitTokens(source, startIndex, endIndex), { parsed_token(nl .. nl) })
+  para = function(state)
+    local nl = guessNewline(state.source)
+    state = trimBlank(state)
+    return append(splitTokens(state), { parsed_token(nl .. nl) })
   end,
-  over_unordered = function(_source, _startIndex, _endIndex)
+  over_unordered = function(state)
     markdown_list_level = markdown_list_level + 2
     return {}
   end,
-  over_ordered = function(_source, _startIndex, _endIndex)
+  over_ordered = function(state)
     markdown_list_level = markdown_list_level + 2
     return {}
   end,
-  back_unordered = function(source, _startIndex, _endIndex)
+  back_unordered = function(state)
     markdown_list_level = markdown_list_level - 2
-    local nl = guessNewline(source)
+    local nl = guessNewline(state.source)
     return { parsed_token(nl) }
   end,
-  back_ordered = function(source, _startIndex, _endIndex)
+  back_ordered = function(state)
     markdown_list_level = markdown_list_level - 2
-    local nl = guessNewline(source)
+    local nl = guessNewline(state.source)
     return { parsed_token(nl) }
   end,
-  cut = function(_source, _startIndex, _endIndex)
+  cut = function(state)
     return {}
   end,
-  pod = function(_source, _startIndex, _endIndex)
+  pod = function(state)
     return {}
   end,
-  verb = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
+  verb = function(state)
+    local nl = guessNewline(state.source)
     return {
       parsed_token("```" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("```" .. nl .. nl),
     }
   end,
-  html = function(source, startIndex, endIndex)
+  html = function(state)
     ---@type string[]
     local lines = {}
-    local state = 0
-    for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
-      if state == 0 then
+    local blockState = 0
+    for _, line in ipairs(splitLines(state)) do
+      if blockState == 0 then
         if line:match("^=begin") then
-          state = 1
+          blockState = 1
         elseif line:match("^=end") then
-          state = 0
+          blockState = 0
         end
       else
         table.insert(lines, line)
@@ -984,105 +1002,97 @@ local markdown = rules({
     end
     return { parsed_token(table.concat(lines)) }
   end,
-  item = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
+  item = function(state)
+    local nl = guessNewline(state.source)
     local bullet = "-"
-    if source:sub(1, endIndex):match("^=item%s*[0-9]") then
-      _, _, bullet = source:sub(1, endIndex):find("^=item%s*([0-9]+%.?)", startIndex)
+    if state.source:sub(1, state.endIndex):match("^=item%s*[0-9]") then
+      _, _, bullet = state.source:sub(1, state.endIndex):find("^=item%s*([0-9]+%.?)", state.startIndex)
     end
-    _, startIndex = source:sub(1, endIndex):find("^=item%s*[*0-9]*%.?.", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local indent = string.rep(" ", markdown_list_level)
-    return append(
-      { parsed_token(indent .. bullet .. " ") },
-      splitItem(source, startIndex, endIndex),
-      { parsed_token(nl) }
-    )
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("^=item%s*[*0-9]*%.?.", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token(bullet .. " ") }, splitItem(state), { parsed_token(nl) })
   end,
-  ["for"] = function(source, startIndex, endIndex)
-    _, startIndex = source:sub(1, endIndex):find("=for%s+%S+%s", startIndex)
-    local nl = guessNewline(source)
+  ["for"] = function(state)
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("=for%s+%S+%s", state.startIndex)
+    local nl = guessNewline(state.source)
     return {
       parsed_token("```" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("```" .. nl),
     }
   end,
-  list = function(source, startIndex, endIndex)
-    return splitList(source, startIndex, endIndex)
+  list = function(state)
+    return splitList(state)
   end,
-  items = function(source, startIndex, endIndex)
-    return splitItems(source, startIndex, endIndex)
+  items = function(state)
+    return splitItems(state)
   end,
-  itempart = function(source, startIndex, endIndex)
-    return splitTokens(source, startIndex, endIndex)
+  itempart = function(state)
+    return splitTokens(state)
   end,
-  I = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("*") }, splitTokens(source, startIndex, endIndex), { parsed_token("*") })
+  I = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("*") }, splitTokens(state), { parsed_token("*") })
   end,
-  B = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("**") }, splitTokens(source, startIndex, endIndex), { parsed_token("**") })
+  B = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("**") }, splitTokens(state), { parsed_token("**") })
   end,
-  C = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("`") }, splitTokens(source, startIndex, endIndex), { parsed_token("`") })
+  C = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("`") }, splitTokens(state), { parsed_token("`") })
   end,
-  L = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local b, e = source:sub(1, endIndex):find("[^|]*|", startIndex)
+  L = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    local b, e = state.source:sub(1, state.endIndex):find("[^|]*|", state.startIndex)
     if b then
       return append(
         { parsed_token("[") },
-        splitTokens(source, b, e - 1),
+        splitTokens(PodiumState.new(state.source, b, e - 1)),
         { parsed_token("](") },
-        splitTokens(source, e + 1, endIndex),
+        splitTokens(PodiumState.new(state.source, e + 1, state.endIndex)),
         { parsed_token(")") }
       )
     else
       return append(
         { parsed_token("[") },
-        splitTokens(source, startIndex, endIndex),
+        splitTokens(state),
         { parsed_token("](") },
-        splitTokens(source, startIndex, endIndex),
+        splitTokens(state),
         { parsed_token(")") }
       )
     end
   end,
-  E = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    if source:sub(startIndex, endIndex) == "lt" then
+  E = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    if state.source:sub(state.startIndex, state.endIndex) == "lt" then
       return { parsed_token("<") }
-    elseif source:sub(startIndex, endIndex) == "gt" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "gt" then
       return { parsed_token(">") }
-    elseif source:sub(startIndex, endIndex) == "verbar" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "verbar" then
       return { parsed_token("|") }
-    elseif source:sub(startIndex, endIndex) == "sol" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "sol" then
       return { parsed_token("/") }
     else
-      return { parsed_token("&" .. source:sub(startIndex, endIndex) .. ";") }
+      return { parsed_token("&" .. state.source:sub(state.startIndex, state.endIndex) .. ";") }
     end
   end,
-  Z = function(_source, _startIndex, _endIndex)
+  Z = function(state)
     return {}
   end,
 })
 
----@param source string
----@param startIndex integer
----@param endIndex integer
----@return PodiumElement[]
-local function vimdoc_head(source, startIndex, endIndex)
-  local nl = guessNewline(source)
-  startIndex = source:sub(1, endIndex):find("%s", startIndex)
-  _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-  local tokens = splitTokens(source, startIndex, endIndex)
+---@type PodiumConvertElementSource
+local function vimdoc_head(state)
+  local nl = guessNewline(state.source)
+  state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+  state = trimBlank(state)
+  local tokens = splitTokens(state)
   ---@type PodiumElement[]
   local tags = {}
   local padding = 78
@@ -1094,104 +1104,81 @@ local function vimdoc_head(source, startIndex, endIndex)
     end
   end
   if #tags > 0 then
-    return append(
-      tokens,
-      { { kind = "text", startIndex = -1, endIndex = -1, value = "~" .. nl } },
-      { { kind = "text", startIndex = -1, endIndex = -1, value = string.rep(" ", padding) } },
-      tags,
-      { { kind = "text", startIndex = -1, endIndex = -1, value = nl .. nl } }
-    )
+    return append(tokens, parsed_token("~" .. nl .. string.rep(" ", padding)), tags, parsed_token(nl .. nl))
   else
-    return append(tokens, { { kind = "text", startIndex = -1, endIndex = -1, value = "~" .. nl .. nl } })
+    return append(tokens, parsed_token("~" .. nl .. nl))
   end
 end
 
 local vimdoc_list_level = 0
 local vimdoc = rules({
-  preamble = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
-    local frontmatter = parseFrontMatter(source)
+  preamble = function(state)
+    local nl = guessNewline(state.source)
+    local frontmatter = parseFrontMatter(state.source)
     local filename = frontmatter.name .. ".txt"
     local description = frontmatter.description
     local spaces = string.rep(" ", 78 - #filename - #description - #nl)
-    return {
-      {
-        kind = "text",
-        startIndex = -1,
-        endIndex = -1,
-        value = filename .. spaces .. description .. nl,
-      },
-    }
+    return { parsed_token(filename .. spaces .. description .. nl) }
   end,
-  postamble = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
-    return {
-      {
-        kind = "text",
-        startIndex = -1,
-        endIndex = -1,
-        value = nl .. "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl,
-      },
-    }
+  postamble = function(state)
+    local nl = guessNewline(state.source)
+    return { parsed_token(nl .. "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl) }
   end,
-  head1 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    return append(
-      { { kind = "text", startIndex = -1, endIndex = -1, value = string.rep("=", 78 - #nl) .. nl } },
-      vimdoc_head(source, startIndex, endIndex)
-    )
+  head1 = function(state)
+    local nl = guessNewline(state.source)
+    return append(parsed_token(string.rep("=", 78 - #nl) .. nl), vimdoc_head(state))
   end,
   head2 = vimdoc_head,
   head3 = vimdoc_head,
   head4 = vimdoc_head,
-  para = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local tokens = splitTokens(source, startIndex, endIndex)
+  para = function(state)
+    local nl = guessNewline(state.source)
+    state = trimBlank(state)
+    local tokens = splitTokens(state)
     return append(tokens, { parsed_token(nl .. nl) })
   end,
-  over_unordered = function(_source, _startIndex, _endIndex)
+  over_unordered = function(state)
     vimdoc_list_level = vimdoc_list_level + 2
     return {}
   end,
-  over_ordered = function(_source, _startIndex, _endIndex)
+  over_ordered = function(state)
     vimdoc_list_level = vimdoc_list_level + 2
     return {}
   end,
-  back_unordered = function(source, _startIndex, _endIndex)
+  back_unordered = function(state)
     vimdoc_list_level = vimdoc_list_level - 2
-    local nl = guessNewline(source)
+    local nl = guessNewline(state.source)
     return { parsed_token(nl) }
   end,
-  back_ordered = function(source, _startIndex, _endIndex)
+  back_ordered = function(state)
     vimdoc_list_level = vimdoc_list_level - 2
-    local nl = guessNewline(source)
+    local nl = guessNewline(state.source)
     return { parsed_token(nl) }
   end,
-  cut = function(_source, _startIndex, _endIndex)
+  cut = function(state)
     return {}
   end,
-  pod = function(_source, _startIndex, _endIndex)
+  pod = function(state)
     return {}
   end,
-  verb = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
+  verb = function(state)
+    local nl = guessNewline(state.source)
     return {
       parsed_token(">" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("<" .. nl .. nl),
     }
   end,
-  vimdoc = function(source, startIndex, endIndex)
+  vimdoc = function(state)
     ---@type string[]
     local lines = {}
-    local state = 0
-    for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
-      if state == 0 then
+    local blockState = 0
+    for _, line in ipairs(splitLines(state)) do
+      if blockState == 0 then
         if line:match("^=begin") then
-          state = 1
+          blockState = 1
         elseif line:match("^=end") then
-          state = 0
+          blockState = 0
         end
       else
         table.insert(lines, line)
@@ -1199,171 +1186,154 @@ local vimdoc = rules({
     end
     return { parsed_token(table.concat(lines)) }
   end,
-  item = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
+  item = function(state)
+    local nl = guessNewline(state.source)
     local bullet = "-"
-    if source:sub(1, endIndex):match("^=item%s*[0-9]") then
-      _, _, bullet = source:sub(1, endIndex):find("^=item%s*([0-9]+%.?)", startIndex)
+    if state.source:sub(1, state.endIndex):match("^=item%s*[0-9]") then
+      _, _, bullet = state.source:sub(1, state.endIndex):find("^=item%s*([0-9]+%.?)", state.startIndex)
     end
-    _, startIndex = source:sub(1, endIndex):find("^=item%s*[*0-9]*%.?.", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local indent = string.rep(" ", vimdoc_list_level)
-    return append(
-      { parsed_token(indent .. bullet .. " ") },
-      splitItem(source, startIndex, endIndex),
-      { parsed_token(nl) }
-    )
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("^=item%s*[*0-9]*%.?.", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token(bullet .. " ") }, splitItem(state), { parsed_token(nl) })
   end,
-  ["for"] = function(source, startIndex, endIndex)
-    _, startIndex = source:sub(1, endIndex):find("=for%s+%S+%s", startIndex)
-    local nl = guessNewline(source)
+  ["for"] = function(state)
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("=for%s+%S+%s", state.startIndex)
+    local nl = guessNewline(state.source)
     return {
       parsed_token("<" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token(">" .. nl .. nl),
     }
   end,
-  list = function(source, startIndex, endIndex)
-    return splitList(source, startIndex, endIndex)
+  list = function(state)
+    return splitList(state)
   end,
-  items = function(source, startIndex, endIndex)
-    return splitItems(source, startIndex, endIndex)
+  items = function(state)
+    return splitItems(state)
   end,
-  itempart = function(source, startIndex, endIndex)
-    return splitTokens(source, startIndex, endIndex)
+  itempart = function(state)
+    return splitTokens(state)
   end,
-  C = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("`") }, splitTokens(source, startIndex, endIndex), { parsed_token("`") })
+  C = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("`") }, splitTokens(state), { parsed_token("`") })
   end,
-  O = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("'") }, splitTokens(source, startIndex, endIndex), { parsed_token("'") })
+  O = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("'") }, splitTokens(state), { parsed_token("'") })
   end,
-  L = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local b, e = source:sub(1, endIndex):find("[^|]*|", startIndex)
+  L = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    local b, e = state.source:sub(1, state.endIndex):find("[^|]*|", state.startIndex)
     if b then
       return append(
-        splitTokens(source, b, e - 1),
+        splitTokens(PodiumState.new(state.source, b, e - 1)),
         { parsed_token(" |") },
-        splitTokens(source, e + 1, endIndex),
+        splitTokens(PodiumState.new(state.source, e + 1, state.endIndex)),
         { parsed_token("|") }
       )
     else
-      return append({ parsed_token("|") }, splitTokens(source, startIndex, endIndex), { parsed_token("|") })
+      return append({ parsed_token("|") }, splitTokens(state), { parsed_token("|") })
     end
   end,
-  X = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("*") }, splitTokens(source, startIndex, endIndex), { parsed_token("*") })
+  X = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("*") }, splitTokens(state), { parsed_token("*") })
   end,
-  E = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    if source:sub(startIndex, endIndex) == "lt" then
+  E = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    if state.source:sub(state.startIndex, state.endIndex) == "lt" then
       return { parsed_token("<") }
-    elseif source:sub(startIndex, endIndex) == "gt" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "gt" then
       return { parsed_token(">") }
-    elseif source:sub(startIndex, endIndex) == "verbar" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "verbar" then
       return { parsed_token("|") }
-    elseif source:sub(startIndex, endIndex) == "sol" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "sol" then
       return { parsed_token("/") }
     else
-      return { parsed_token("&" .. source:sub(startIndex, endIndex) .. ";") }
+      return { parsed_token("&" .. state.source:sub(state.startIndex, state.endIndex) .. ";") }
     end
   end,
-  Z = function(_source, _startIndex, _endIndex)
+  Z = function(state)
     return {}
   end,
 })
 
 local latex = rules({
-  preamble = function(_source, _startIndex, _endIndex)
+  preamble = function(state)
     return {}
   end,
-  postamble = function(_source, _startIndex, _endIndex)
+  postamble = function(state)
     return {}
   end,
-  head1 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append(
-      { parsed_token("\\section{") },
-      splitTokens(source, startIndex, endIndex),
-      { parsed_token("}" .. nl) }
-    )
+  head1 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\section{") }, splitTokens(state), { parsed_token("}" .. nl) })
   end,
-  head2 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append(
-      { parsed_token("\\subsection{") },
-      splitTokens(source, startIndex, endIndex),
-      { parsed_token("}" .. nl) }
-    )
+  head2 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\subsection{") }, splitTokens(state), { parsed_token("}" .. nl) })
   end,
-  head3 = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    startIndex = source:sub(1, endIndex):find("%s", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append(
-      { parsed_token("\\subsubsection{") },
-      splitTokens(source, startIndex, endIndex),
-      { parsed_token("}" .. nl) }
-    )
+  head3 = function(state)
+    local nl = guessNewline(state.source)
+    state.startIndex = state.source:sub(1, state.endIndex):find("%s", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\subsubsection{") }, splitTokens(state), { parsed_token("}" .. nl) })
   end,
-  para = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append(splitTokens(source, startIndex, endIndex), { parsed_token(nl) })
+  para = function(state)
+    local nl = guessNewline(state.source)
+    state = trimBlank(state)
+    return append(splitTokens(state), { parsed_token(nl) })
   end,
-  over_unordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  over_unordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("\\begin{itemize}" .. nl) }
   end,
-  over_ordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  over_ordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("\\begin{enumerate}" .. nl) }
   end,
-  back_unordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  back_unordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("\\end{itemize}" .. nl) }
   end,
-  back_ordered = function(source, _startIndex, _endIndex)
-    local nl = guessNewline(source)
+  back_ordered = function(state)
+    local nl = guessNewline(state.source)
     return { parsed_token("\\end{enumerate}" .. nl) }
   end,
-  cut = function(_source, _startIndex, _endIndex)
+  cut = function(state)
     return {}
   end,
-  pod = function(_source, _startIndex, _endIndex)
+  pod = function(state)
     return {}
   end,
-  verb = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
+  verb = function(state)
+    local nl = guessNewline(state.source)
     return {
       parsed_token("\\begin{verbatim}" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("\\end{verbatim}" .. nl),
     }
   end,
-  latex = function(source, startIndex, endIndex)
+  latex = function(state)
     ---@type string[]
     local lines = {}
-    local state = 0
-    for _, line in ipairs(splitLines(source, startIndex, endIndex)) do
-      if state == 0 then
+    local blockState = 0
+    for _, line in ipairs(splitLines(state)) do
+      if blockState == 0 then
         if line:match("^=begin") then
-          state = 1
+          blockState = 1
         elseif line:match("^=end") then
-          state = 0
+          blockState = 0
         end
       else
         table.insert(lines, line)
@@ -1371,92 +1341,92 @@ local latex = rules({
     end
     return { parsed_token(table.concat(lines)) }
   end,
-  item = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex = source:sub(1, endIndex):find("^=item%s*[*0-9]*%.?.", startIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("\\item ") }, splitItem(source, startIndex, endIndex), { parsed_token(nl) })
+  item = function(state)
+    local nl = guessNewline(state.source)
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("^=item%s*[*0-9]*%.?.", state.startIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\item ") }, splitItem(state), { parsed_token(nl) })
   end,
-  ["for"] = function(source, startIndex, endIndex)
-    local nl = guessNewline(source)
-    _, startIndex = source:sub(1, endIndex):find("=for%s+%S+%s", startIndex)
+  ["for"] = function(state)
+    local nl = guessNewline(state.source)
+    _, state.startIndex = state.source:sub(1, state.endIndex):find("=for%s+%S+%s", state.startIndex)
     return {
       parsed_token("\\begin{verbatim}" .. nl),
-      parsed_token(source:sub(startIndex, endIndex)),
+      parsed_token(state.source:sub(state.startIndex, state.endIndex)),
       parsed_token("\\end{verbatim}" .. nl),
     }
   end,
-  list = function(source, startIndex, endIndex)
-    return splitList(source, startIndex, endIndex)
+  list = function(state)
+    return splitList(state)
   end,
-  items = function(source, startIndex, endIndex)
-    return splitItems(source, startIndex, endIndex)
+  items = function(state)
+    return splitItems(state)
   end,
-  itempart = function(source, startIndex, endIndex)
-    return splitTokens(source, startIndex, endIndex)
+  itempart = function(state)
+    return splitTokens(state)
   end,
-  I = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("\\textit{") }, splitTokens(source, startIndex, endIndex), { parsed_token("}") })
+  I = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\textit{") }, splitTokens(state), { parsed_token("}") })
   end,
-  B = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("\\textbf{") }, splitTokens(source, startIndex, endIndex), { parsed_token("}") })
+  B = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\textbf{") }, splitTokens(state), { parsed_token("}") })
   end,
-  C = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("\\verb|") }, splitTokens(source, startIndex, endIndex), { parsed_token("|") })
+  C = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\verb|") }, splitTokens(state), { parsed_token("|") })
   end,
-  L = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    local b, e = source:sub(1, endIndex):find("[^|]*|", startIndex)
+  L = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    local b, e = state.source:sub(1, state.endIndex):find("[^|]*|", state.startIndex)
     if b then
       return append(
         { parsed_token("\\href{") },
-        splitTokens(source, e + 1, endIndex),
+        splitTokens(PodiumState.new(state.source, e + 1, state.endIndex)),
         { parsed_token("}{") },
-        splitTokens(source, b, e - 1),
+        splitTokens(PodiumState.new(state.source, b, e - 1)),
         { parsed_token("}") }
       )
-    elseif source:sub(startIndex, endIndex):match("^https?://") then
-      return append({ parsed_token("\\url{") }, splitTokens(source, startIndex, endIndex), { parsed_token("}") })
+    elseif state.source:sub(state.startIndex, state.endIndex):match("^https?://") then
+      return append({ parsed_token("\\url{") }, splitTokens(state), { parsed_token("}") })
     else
       return {
         { parsed_token("\\ref{") },
-        splitTokens(source, startIndex, endIndex),
+        splitTokens(state),
         { parsed_token("}") },
       }
     end
   end,
-  E = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    if source:sub(startIndex, endIndex) == "lt" then
+  E = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    if state.source:sub(state.startIndex, state.endIndex) == "lt" then
       return { parsed_token("<") }
-    elseif source:sub(startIndex, endIndex) == "gt" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "gt" then
       return { parsed_token(">") }
-    elseif source:sub(startIndex, endIndex) == "verbar" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "verbar" then
       return { parsed_token("|") }
-    elseif source:sub(startIndex, endIndex) == "sol" then
+    elseif state.source:sub(state.startIndex, state.endIndex) == "sol" then
       return { parsed_token("/") }
     else
       return {
         parsed_token("\\texttt{"),
-        splitTokens(source, startIndex, endIndex),
+        splitTokens(state),
         parsed_token("}"),
       }
     end
   end,
-  X = function(source, startIndex, endIndex)
-    _, startIndex, endIndex, _ = findInline(source, startIndex, endIndex)
-    _, startIndex, endIndex = trimBlank(source, startIndex, endIndex)
-    return append({ parsed_token("\\label{") }, splitTokens(source, startIndex, endIndex), { parsed_token("}") })
+  X = function(state)
+    _, state.startIndex, state.endIndex, _ = findInline(state.source, state.startIndex, state.endIndex)
+    state = trimBlank(state)
+    return append({ parsed_token("\\label{") }, splitTokens(state), { parsed_token("}") })
   end,
-  Z = function(_source, _startIndex, _endIndex)
+  Z = function(state)
     return {}
   end,
 })
@@ -1485,6 +1455,9 @@ function M.body(source, startIndex, endIndex)
   return source:sub(e + 1, f - 1)
 end
 
+M.PodiumState = PodiumState
+M.PodiumElement = PodiumElement
+M.findInline = findInline
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
 M.splitItem = splitItem

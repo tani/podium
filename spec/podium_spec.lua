@@ -1,7 +1,7 @@
 local pod = require("./podium")
 
 local function unindent(str)
-  local lines = pod.splitLines(str)
+  local lines = pod.splitLines(pod.PodiumState.new(str))
   local indent = lines[1]:match("^%s*")
   for i, line in ipairs(lines) do
     lines[i] = line:gsub("^" .. indent, "")
@@ -19,7 +19,7 @@ describe("POD Parser", function()
 
       =back
       ]])
-      local actual = pod.splitList(content)
+      local actual = pod.splitList(pod.PodiumState.new(content))
       local expected = {
         {
           kind = "over_unordered",
@@ -29,6 +29,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 9,
+          indent = 0,
         },
         {
           kind = "items",
@@ -38,6 +39,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 10,
           endIndex = 15,
+          indent = 0,
         },
         {
           kind = "back_unordered",
@@ -46,6 +48,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 16,
           endIndex = 21,
+          indent = 0,
         },
       }
       assert.are.same(expected, actual)
@@ -64,7 +67,7 @@ describe("POD Parser", function()
 
       =back
       ]])
-      local actual = pod.splitList(content)
+      local actual = pod.splitList(pod.PodiumState.new(content))
       local expected = {
         {
           kind = "over_unordered",
@@ -74,6 +77,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 9,
+          indent = 0,
         },
         {
           kind = "items",
@@ -89,6 +93,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 10,
           endIndex = 43,
+          indent = 0,
         },
         {
           kind = "back_unordered",
@@ -97,6 +102,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 44,
           endIndex = 49,
+          indent = 0,
         },
       }
       assert.are.same(expected, actual)
@@ -104,22 +110,22 @@ describe("POD Parser", function()
   end)
   describe("splitLines function", function()
     it("splits lines by \\n", function()
-      local actual = pod.splitLines("foo\nbar\nbazz")
+      local actual = pod.splitLines(pod.PodiumState.new("foo\nbar\nbazz"))
       local expected = { "foo\n", "bar\n", "bazz" }
       assert.are.same(expected, actual)
     end)
     it("splits lines by \\r", function()
-      local actual = pod.splitLines("foo\rbar\rbazz")
+      local actual = pod.splitLines(pod.PodiumState.new("foo\rbar\rbazz"))
       local expected = { "foo\r", "bar\r", "bazz" }
       assert.are.same(expected, actual)
     end)
     it("splits lines by \\r\\n", function()
-      local actual = pod.splitLines("foo\r\nbar\r\nbazz")
+      local actual = pod.splitLines(pod.PodiumState.new("foo\r\nbar\r\nbazz"))
       local expected = { "foo\r\n", "bar\r\n", "bazz" }
       assert.are.same(expected, actual)
     end)
     it("splits lines by mixed newline characters", function()
-      local actual = pod.splitLines("foo\r\nbar\rbazz\nhoge")
+      local actual = pod.splitLines(pod.PodiumState.new("foo\r\nbar\rbazz\nhoge"))
       local expected = { "foo\r\n", "bar\r", "bazz\n", "hoge" }
       assert.are.same(expected, actual)
     end)
@@ -127,7 +133,7 @@ describe("POD Parser", function()
 
   describe("splitParagraphs function", function()
     it("splits headings", function()
-      local actual = pod.splitParagraphs(unindent([[
+      local actual = pod.splitParagraphs(pod.PodiumState.new(unindent([[
         =head1 foo
 
 
@@ -136,7 +142,7 @@ describe("POD Parser", function()
         =head3 bar
 
         bar
-        ]]))
+        ]])))
       local expected = {
         {
           kind = "head1",
@@ -146,12 +152,14 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 12,
+          indentLevel = 0,
         },
         {
           kind = "skip",
           value = "\n",
           startIndex = 13,
           endIndex = 13,
+          indentLevel = 0,
         },
         {
           kind = "head2",
@@ -161,6 +169,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 14,
           endIndex = 26,
+          indentLevel = 0,
         },
         {
           kind = "head3",
@@ -170,18 +179,20 @@ describe("POD Parser", function()
           ]]),
           startIndex = 27,
           endIndex = 38,
+          indentLevel = 0,
         },
         {
           kind = "para",
           value = "bar\n",
           startIndex = 39,
           endIndex = 42,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by empty line", function()
-      local actual = pod.splitParagraphs("foo\n\nbar\n\nbazz")
+      local actual = pod.splitParagraphs(pod.PodiumState.new("foo\n\nbar\n\nbazz"))
       local expected = {
         {
           kind = "para",
@@ -191,6 +202,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 5,
+          indentLevel = 0,
         },
         {
           kind = "para",
@@ -200,18 +212,20 @@ describe("POD Parser", function()
           ]]),
           startIndex = 6,
           endIndex = 10,
+          indentLevel = 0,
         },
         {
           kind = "para",
           value = "bazz",
           startIndex = 11,
           endIndex = 14,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by over-back block", function()
-      local actual = pod.splitParagraphs(unindent([[
+      local actual = pod.splitParagraphs(pod.PodiumState.new(unindent([[
         foo
 
         =over
@@ -222,7 +236,7 @@ describe("POD Parser", function()
 
         =back
 
-        hoge]]))
+        hoge]])))
       local expected = {
         {
           kind = "para",
@@ -232,6 +246,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 5,
+          indentLevel = 0,
         },
         {
           kind = "list",
@@ -247,18 +262,20 @@ describe("POD Parser", function()
           ]]),
           startIndex = 6,
           endIndex = 42,
+          indentLevel = 0,
         },
         {
           kind = "para",
           value = "hoge",
           startIndex = 43,
           endIndex = 46,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by nested over-back block", function()
-      local actual = pod.splitParagraphs(unindent([[
+      local actual = pod.splitParagraphs(pod.PodiumState.new(unindent([[
         foo
 
         =over
@@ -275,7 +292,7 @@ describe("POD Parser", function()
 
         =back
 
-        fuga]]))
+        fuga]])))
       local expected = {
         {
           kind = "para",
@@ -285,6 +302,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 5,
+          indentLevel = 0,
         },
         {
           kind = "list",
@@ -306,18 +324,20 @@ describe("POD Parser", function()
           ]]),
           startIndex = 6,
           endIndex = 68,
+          indentLevel = 0,
         },
         {
           kind = "para",
           value = "fuga",
           startIndex = 69,
           endIndex = 72,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by begin-end block", function()
-      local actual = pod.splitParagraphs(unindent([[
+      local actual = pod.splitParagraphs(pod.PodiumState.new(unindent([[
         foo
 
         =begin html
@@ -326,7 +346,7 @@ describe("POD Parser", function()
 
         =end html
 
-        bar]]))
+        bar]])))
       local expected = {
         {
           kind = "para",
@@ -336,6 +356,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 5,
+          indentLevel = 0,
         },
         {
           kind = "html",
@@ -349,18 +370,20 @@ describe("POD Parser", function()
           ]]),
           startIndex = 6,
           endIndex = 41,
+          indentLevel = 0,
         },
         {
           kind = "para",
           value = "bar",
           startIndex = 42,
           endIndex = 44,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("does not split lines with no empty line", function()
-      local actual = pod.splitParagraphs("foo\nbar\nbazz")
+      local actual = pod.splitParagraphs(pod.PodiumState.new("foo\nbar\nbazz"))
       local expected = {
         {
           kind = "para",
@@ -370,12 +393,13 @@ describe("POD Parser", function()
           bazz]]),
           startIndex = 1,
           endIndex = 12,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("does not split lines with no empty line", function()
-      local actual = pod.splitParagraphs(unindent([[
+      local actual = pod.splitParagraphs(pod.PodiumState.new(unindent([[
         foo
 
         =over
@@ -385,7 +409,7 @@ describe("POD Parser", function()
         =item bazz
 
         =back
-        hoge]]))
+        hoge]])))
       local expected = {
         {
           kind = "para",
@@ -395,6 +419,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 5,
+          indentLevel = 0,
         },
         {
           kind = "list",
@@ -409,6 +434,7 @@ describe("POD Parser", function()
           hoge]]),
           startIndex = 6,
           endIndex = 45,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
@@ -416,9 +442,9 @@ describe("POD Parser", function()
   end)
   describe("splitItems function", function()
     it("split no items", function()
-      local actual = pod.splitItems(unindent([[
+      local actual = pod.splitItems(pod.PodiumState.new(unindent([[
         lorem ipsum
-        dolor sit amet]]))
+        dolor sit amet]])))
       local expected = {
         {
           kind = "para",
@@ -427,12 +453,13 @@ describe("POD Parser", function()
           dolor sit amet]]),
           startIndex = 1,
           endIndex = 26,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("split no items with list", function()
-      local actual = pod.splitItems(unindent([[
+      local actual = pod.splitItems(pod.PodiumState.new(unindent([[
         lorem ipsum
 
         =over
@@ -440,7 +467,7 @@ describe("POD Parser", function()
         =item fuga
         =back
 
-        dolor sit amet]]))
+        dolor sit amet]])))
       local expected = {
         {
           kind = "para",
@@ -450,6 +477,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 13,
+          indentLevel = 0,
         },
         {
           kind = "list",
@@ -462,23 +490,25 @@ describe("POD Parser", function()
           ]]),
           startIndex = 14,
           endIndex = 48,
+          indentLevel = 0,
         },
         {
           kind = "para",
           value = "dolor sit amet",
           startIndex = 49,
           endIndex = 62,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("split items", function()
-      local actual = pod.splitItems(unindent([[
+      local actual = pod.splitItems(pod.PodiumState.new(unindent([[
         =item foo
 
         =item bar
 
-        =item bazz]]))
+        =item bazz]])))
       local expected = {
         {
           kind = "item",
@@ -488,6 +518,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 11,
+          indentLevel = 0,
         },
         {
           kind = "item",
@@ -497,6 +528,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 12,
           endIndex = 22,
+          indentLevel = 0,
         },
         {
           kind = "item",
@@ -504,12 +536,13 @@ describe("POD Parser", function()
           =item bazz]]),
           startIndex = 23,
           endIndex = 32,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("split items with nested list", function()
-      local actual = pod.splitItems(unindent([[
+      local actual = pod.splitItems(pod.PodiumState.new(unindent([[
         =item foo
 
         =over
@@ -518,7 +551,7 @@ describe("POD Parser", function()
         =item bazz
         =back
 
-        =item hoge]]))
+        =item hoge]])))
       local expected = {
         {
           kind = "item",
@@ -534,12 +567,14 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 46,
+          indentLevel = 0,
         },
         {
           kind = "item",
           value = "=item hoge",
           startIndex = 47,
           endIndex = 56,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
@@ -548,27 +583,28 @@ describe("POD Parser", function()
 
   describe("splitItem function", function()
     it("split parts", function()
-      local actual = pod.splitItem(unindent([[
-        =item foo bar]]))
+      local actual = pod.splitItem(pod.PodiumState.new(unindent([[
+        =item foo bar]])))
       local expected = {
         {
           kind = "itempart",
           value = "=item foo bar",
           startIndex = 1,
           endIndex = 13,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("splits parts with begin - end", function()
-      local actual = pod.splitItem(unindent([[
+      local actual = pod.splitItem(pod.PodiumState.new(unindent([[
         =item foo
         bar
         =over
         =item
         =back
 
-        bazz]]))
+        bazz]])))
       local expected = {
         {
           kind = "itempart",
@@ -578,6 +614,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 14,
+          indentLevel = 0,
         },
         {
           kind = "list",
@@ -589,12 +626,14 @@ describe("POD Parser", function()
           ]]),
           startIndex = 15,
           endIndex = 33,
+          indentLevel = 0,
         },
         {
           kind = "itempart",
           value = "bazz",
           startIndex = 34,
           endIndex = 37,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
@@ -602,39 +641,43 @@ describe("POD Parser", function()
   end)
   describe("splitTokens function", function()
     it("split tokens without cmd", function()
-      local actual = pod.splitTokens(unindent([[
-        foo bar]]))
+      local actual = pod.splitTokens(pod.PodiumState.new(unindent([[
+        foo bar]])))
       local expected = {
         {
           kind = "text",
           value = "foo bar",
           startIndex = 1,
           endIndex = 7,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
     end)
     it("split tokens with cmd", function()
-      local actual = pod.splitTokens(unindent([[
-        foo bar C<hoge> huga]]))
+      local actual = pod.splitTokens(pod.PodiumState.new(unindent([[
+        foo bar C<hoge> huga]])))
       local expected = {
         {
           kind = "text",
           value = "foo bar ",
           startIndex = 1,
           endIndex = 8,
+          indentLevel = 0,
         },
         {
           kind = "C",
           value = "C<hoge>",
           startIndex = 9,
           endIndex = 15,
+          indentLevel = 0,
         },
         {
           kind = "text",
           value = " huga",
           startIndex = 16,
           endIndex = 20,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
