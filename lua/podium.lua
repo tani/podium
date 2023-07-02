@@ -360,9 +360,7 @@ local function splitParagraphs(state)
   ---@type string[]
   local lines = {}
   local startIndex = state.startIndex
-  local endIndex = state.startIndex
   for _, line in ipairs(splitLines(state)) do
-    endIndex = endIndex + #line
     if state_list > 0 then
       table.insert(lines, line)
       if line:match("^=over") then
@@ -370,50 +368,53 @@ local function splitParagraphs(state)
       elseif line:match("^=back") then
         state_list = state_list - 1
       elseif state_list == 1 and line:match("^%s+$") then
+        local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           paragraphs,
           PodiumElement.new(
             "list",
             table.concat(lines),
             startIndex,
-            endIndex - 1,
+            endIndex,
             state.indentLevel
           )
         )
-        startIndex = endIndex
+        startIndex = endIndex + 1
         state_list = 0
         lines = {}
       end
     elseif state_para > 0 then
       table.insert(lines, line)
       if state_para == 1 and line:match("^%s+$") then
+        local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           paragraphs,
           PodiumElement.new(
             "para",
             table.concat(lines),
             startIndex,
-            endIndex - 1,
+            endIndex,
             state.indentLevel
           )
         )
-        startIndex = endIndex
+        startIndex = endIndex + 1
         state_para = 0
         lines = {}
       end
     elseif state_verb > 0 then
       if state_verb == 1 and line:match("^%S") then
+        local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           paragraphs,
           PodiumElement.new(
             "verb",
             table.concat(lines),
             startIndex,
-            endIndex - 1,
+            endIndex,
             state.indentLevel
           )
         )
-        startIndex = endIndex
+        startIndex = endIndex + 1
         lines = { line }
         state_verb = 0
         if line:match("^=over") then
@@ -439,50 +440,53 @@ local function splitParagraphs(state)
         state_block = 1
       end
       if state_block == 1 and line:match("^%s+$") then
+        local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           paragraphs,
           PodiumElement.new(
             block_name,
             table.concat(lines),
             startIndex,
-            endIndex - 1,
+            endIndex,
             state.indentLevel
           )
         )
-        startIndex = endIndex
+        startIndex = endIndex + 1
         lines = {}
         state_block = 0
       end
     elseif state_cmd > 0 then
       table.insert(lines, line)
       if state_cmd == 1 and line:match("^%s+$") then
+        local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           paragraphs,
           PodiumElement.new(
             cmd_name,
             table.concat(lines),
             startIndex,
-            endIndex - 1,
+            endIndex,
             state.indentLevel
           )
         )
-        startIndex = endIndex
+        startIndex = endIndex + 1
         lines = {}
         state_cmd = 0
       end
     else
       if line:match("^%s+$") then
+        local endIndex = startIndex + #line - 1
         table.insert(
           paragraphs,
           PodiumElement.new(
             "skip",
             line,
             startIndex,
-            endIndex - 1,
+            endIndex,
             state.indentLevel
           )
         )
-        startIndex = endIndex
+        startIndex = endIndex + 1
       elseif line:match("^=over") then
         table.insert(lines, line)
         state_list = 2
@@ -505,65 +509,70 @@ local function splitParagraphs(state)
   end
   if #lines > 0 then
     if state_list > 0 then
+      local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         paragraphs,
         PodiumElement.new(
           "list",
           table.concat(lines),
           startIndex,
-          endIndex - 1,
+          endIndex,
           state.indentLevel
         )
       )
-      startIndex = endIndex
+      startIndex = endIndex + 1
     elseif state_para > 0 then
+      local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         paragraphs,
         PodiumElement.new(
           "para",
           table.concat(lines),
           startIndex,
-          endIndex - 1,
+          endIndex,
           state.indentLevel
         )
       )
-      startIndex = endIndex
+      startIndex = endIndex + 1
     elseif state_verb > 0 then
+      local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         paragraphs,
         PodiumElement.new(
           "verb",
           table.concat(lines),
           startIndex,
-          endIndex - 1,
+          endIndex,
           state.indentLevel
         )
       )
-      startIndex = endIndex
+      startIndex = endIndex + 1
     elseif state_block > 0 then
+      local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         paragraphs,
         PodiumElement.new(
           block_name,
           table.concat(lines),
           startIndex,
-          endIndex - 1,
+          endIndex,
           state.indentLevel
         )
       )
-      startIndex = endIndex
+      startIndex = endIndex + 1
     elseif state_cmd > 0 then
+      local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         paragraphs,
         PodiumElement.new(
           cmd_name,
           table.concat(lines),
           startIndex,
-          endIndex - 1,
+          endIndex,
           state.indentLevel
         )
       )
-      startIndex = endIndex
+      startIndex = endIndex + 1
     end
   end
   return paragraphs
