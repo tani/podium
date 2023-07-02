@@ -366,41 +366,32 @@ local function splitParagraphs(state)
       elseif line:match("^=back") then
         state_list = state_list - 1
       elseif state_list == 1 and line:match("^%s+$") then
-        table.insert(
-          paragraphs,
-          {
-            kind = "list",
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(paragraphs, {
+          kind = "list",
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         state_list = 0
         lines = {}
       end
     elseif state_para > 0 then
       table.insert(lines, line)
       if state_para == 1 and line:match("^%s+$") then
-        table.insert(
-          paragraphs,
-          {
-            kind = "para",
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(paragraphs, {
+          kind = "para",
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         state_para = 0
         lines = {}
       end
     elseif state_verb > 0 then
       if state_verb == 1 and line:match("^%S") then
-        table.insert(
-          paragraphs,
-          {
-            kind = "verb",
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(paragraphs, {
+          kind = "verb",
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         lines = { line }
         state_verb = 0
         if line:match("^=over") then
@@ -426,28 +417,22 @@ local function splitParagraphs(state)
         state_block = 1
       end
       if state_block == 1 and line:match("^%s+$") then
-        table.insert(
-          paragraphs,
-          {
-            kind = block_name,
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(paragraphs, {
+          kind = block_name,
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         lines = {}
         state_block = 0
       end
     elseif state_cmd > 0 then
       table.insert(lines, line)
       if state_cmd == 1 and line:match("^%s+$") then
-        table.insert(
-          paragraphs,
-          {
-            kind = cmd_name,
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(paragraphs, {
+          kind = cmd_name,
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         lines = {}
         state_cmd = 0
       end
@@ -479,50 +464,35 @@ local function splitParagraphs(state)
   end
   if #lines > 0 then
     if state_list > 0 then
-      table.insert(
-        paragraphs,
-        {
-          kind = "list",
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(paragraphs, {
+        kind = "list",
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     elseif state_para > 0 then
-      table.insert(
-        paragraphs,
-        {
-          kind = "para",
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(paragraphs, {
+        kind = "para",
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     elseif state_verb > 0 then
-      table.insert(
-        paragraphs,
-        {
-          kind = "verb",
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(paragraphs, {
+        kind = "verb",
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     elseif state_block > 0 then
-      table.insert(
-        paragraphs,
-        {
-          kind = block_name,
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(paragraphs, {
+        kind = block_name,
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     elseif state_cmd > 0 then
-      table.insert(
-        paragraphs,
-        {
-          kind = cmd_name,
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(paragraphs, {
+        kind = cmd_name,
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     end
   end
   for _, paragraph in ipairs(paragraphs) do
@@ -543,14 +513,11 @@ local function splitItem(state)
   for _, line in ipairs(splitLines(state)) do
     if itemState == 0 then
       if line:match("^=over") then
-        table.insert(
-          parts,
-          {
-            kind = "itempart",
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(parts, {
+          kind = "itempart",
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         itemState = itemState + 2
         lines = { line }
       else
@@ -563,14 +530,11 @@ local function splitItem(state)
       elseif line:match("^=back") then
         itemState = itemState - 1
       elseif itemState == 1 and line:match("^%s+$") then
-        table.insert(
-          parts,
-          {
-            kind = "list",
-            value = table.concat(lines),
-            indentLevel = state.indentLevel,
-          }
-        )
+        table.insert(parts, {
+          kind = "list",
+          value = table.concat(lines),
+          indentLevel = state.indentLevel,
+        })
         lines = {}
         itemState = 0
       end
@@ -578,23 +542,17 @@ local function splitItem(state)
   end
   if #lines > 0 then
     if itemState > 0 then
-      table.insert(
-        parts,
-        {
-          kind = "list",
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(parts, {
+        kind = "list",
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     else
-      table.insert(
-        parts,
-        {
-          kind = "itempart",
-          value = table.concat(lines),
-          indentLevel = state.indentLevel,
-        }
-      )
+      table.insert(parts, {
+        kind = "itempart",
+        value = table.concat(lines),
+        indentLevel = state.indentLevel,
+      })
     end
   end
   local startIndex = state.startIndex
@@ -650,14 +608,11 @@ local function splitItems(state)
     elseif itemsState == "items" then
       if line:match("^=item") then
         if depth == 0 then
-          table.insert(
-            items,
-            {
-              kind = "item",
-              value = table.concat(lines),
-              indentLevel = state.indentLevel,
-            }
-          )
+          table.insert(items, {
+            kind = "item",
+            value = table.concat(lines),
+            indentLevel = state.indentLevel,
+          })
           lines = { line }
           index = index + 1
         else
@@ -679,14 +634,11 @@ local function splitItems(state)
     end
   end
   if itemsState == "items" then
-    table.insert(
-      items,
-      {
-        kind = "item",
-        value = table.concat(lines),
-        indentLevel = state.indentLevel,
-      }
-    )
+    table.insert(items, {
+      kind = "item",
+      value = table.concat(lines),
+      indentLevel = state.indentLevel,
+    })
   else
     return splitParagraphs(state)
   end
@@ -1361,12 +1313,12 @@ local function vimdoc_head(state)
   if #tags > 0 then
     return append(
       tokens,
-      parsed_token("~" .. nl .. string.rep(" ", padding)),
+      { parsed_token("~" .. nl .. string.rep(" ", padding)) },
       tags,
-      parsed_token(nl .. nl)
+      { parsed_token(nl .. nl) }
     )
   else
-    return append(tokens, parsed_token("~" .. nl .. nl))
+    return append(tokens, { parsed_token("~" .. nl .. nl) })
   end
 end
 
