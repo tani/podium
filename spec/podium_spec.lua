@@ -11,6 +11,48 @@ end
 
 describe("POD Parser", function()
   describe("splitList function", function()
+    it("splits simple indent block with default indent", function()
+      local content = unindent([[
+      =over
+
+      hoge
+
+      =back
+      ]])
+      local actual = pod.splitList(pod.PodiumState.new(content))
+      local expected = {
+        {
+          kind = "over_unordered",
+          value = unindent([[
+          =over
+
+          ]]),
+          startIndex = 1,
+          endIndex = 7,
+          indentLevel = 4,
+        },
+        {
+          kind = "items",
+          value = unindent([[
+          hoge
+
+          ]]),
+          startIndex = 8,
+          endIndex = 13,
+          indentLevel = 4,
+        },
+        {
+          kind = "back_unordered",
+          value = unindent([[
+          =back
+          ]]),
+          startIndex = 14,
+          endIndex = 19,
+          indentLevel = 0,
+        },
+      }
+      assert.are.same(expected, actual)
+    end)
     it("splits simple indent block", function()
       local content = unindent([[
       =over 8
@@ -29,7 +71,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 9,
-          indent = 0,
+          indentLevel = 8,
         },
         {
           kind = "items",
@@ -39,7 +81,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 10,
           endIndex = 15,
-          indent = 0,
+          indentLevel = 8,
         },
         {
           kind = "back_unordered",
@@ -48,7 +90,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 16,
           endIndex = 21,
-          indent = 0,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
@@ -77,7 +119,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 1,
           endIndex = 9,
-          indent = 0,
+          indentLevel = 8,
         },
         {
           kind = "items",
@@ -93,7 +135,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 10,
           endIndex = 43,
-          indent = 0,
+          indentLevel = 8,
         },
         {
           kind = "back_unordered",
@@ -102,7 +144,7 @@ describe("POD Parser", function()
           ]]),
           startIndex = 44,
           endIndex = 49,
-          indent = 0,
+          indentLevel = 0,
         },
       }
       assert.are.same(expected, actual)
