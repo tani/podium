@@ -8,12 +8,28 @@ const podium = await fetch(new URL("../lua/podium.lua", import.meta.url)).then(
 );
 
 function process(source: string, target: string): string {
-  const script = `
-    _G.SOURCE = [===[${source}]===]
-    _G.TARGET = [===[${target}]===]
-    ${podium.replace(/^#!.*\n/, "")}
-  `;
-  return fengari.load(script)();
+  const lauxlib = fengari.lauxlib;
+  const lua = fengari.lua;
+  const lualib = fengari.lualib
+  const state = lauxlib.luaL_newstate();
+  lualib.luaL_openlibs(state);
+  const code = fengari.to_luastring(podium.replace(/^#!.*\n/, ""));
+  if (lauxlib.luaL_dostring(state, code) !== lua.LUA_OK) {
+    const error = lua.lua_tojsstring(state, -1);
+    lua.lua_close(state);
+    throw new Error(error);
+  }
+  lua.lua_getfield(state, -1, "process");
+  if (lua.lua_isnil(state, -1)) {
+    lua.lua_close(state);
+    throw new Error("Podium.process is nil");
+  }
+  lua.lua_pushliteral(state, source);
+  lua.lua_pushliteral(state, target);
+  lua.lua_pcall(state, 2, 1, 0);
+  const result = lua.lua_tojsstring(state, -1);
+  lua.lua_close(state);
+  return result
 }
 
 const app = new Hono();

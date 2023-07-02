@@ -924,8 +924,11 @@ local function splitList(element)
 end
 
 ---@param source string
----@param target PodiumConverter
+---@param target PodiumConverter | string
 local function process(source, target)
+  if type(target) ~= "table" then
+    target = M[target]
+  end
   local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
   local nl = guessNewline(source)
   local shouldProcess = false
@@ -1860,30 +1863,6 @@ local latex = rules({
   end,
 })
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return string
-function M.arg(source, startIndex, endIndex)
-  local _, b, e, _ = findInline(source, startIndex, endIndex)
-  if b then
-    return source:sub(b, e)
-  else
-    return ""
-  end
-end
-
----@param source string
----@param startIndex? integer
----@param endIndex? integer
----@return string
-function M.body(source, startIndex, endIndex)
-  local nl = guessNewline(source)
-  local _, e = source:sub(1, endIndex):find("^=begin.*" .. nl, startIndex)
-  local _, f = source:sub(1, endIndex):find(nl .. "=end.*$", startIndex)
-  return source:sub(e + 1, f - 1)
-end
-
 M.PodiumElement = PodiumElement
 M.findInline = findInline
 M.splitLines = splitLines
@@ -1899,30 +1878,28 @@ M.markdown = markdown
 M.latex = latex
 M.vimdoc = vimdoc
 
-if _G["SOURCE"] and _G["TARGET"] then
-  return M.process(_G["SOURCE"], M[_G["TARGET"]])
-end
-
-if #arg > 0 and arg[0]:match("podium") then
-  local input
-  if arg[2] then
-    local ifile = io.open(arg[2], "r")
-    if not ifile then
-      error("cannot open file: " .. arg[2])
-    end
-    input = ifile:read("*a")
-  else
-    input = io.read("*a")
-  end
-  local output = M.process(input, M[arg[1]])
-  if arg[3] then
-    local ofile = io.open(arg[3], "w")
-    if not ofile then
-      error("cannot open file: " .. arg[3])
-    end
-    ofile:write(output)
-  else
-    io.write(output)
+if arg then
+  if #arg > 0 and arg[0]:match("podium") then
+   local input
+   if arg[2] then
+     local ifile = io.open(arg[2], "r")
+     if not ifile then
+       error("cannot open file: " .. arg[2])
+     end
+     input = ifile:read("*a")
+   else
+     input = io.read("*a")
+   end
+   local output = M.process(input, M[arg[1]])
+   if arg[3] then
+     local ofile = io.open(arg[3], "w")
+     if not ofile then
+       error("cannot open file: " .. arg[3])
+     end
+     ofile:write(output)
+   else
+     io.write(output)
+   end
   end
 end
 
