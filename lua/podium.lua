@@ -192,7 +192,7 @@ local function trimBlank(state)
       break
     end
   end
-  return PodiumState.new(state.source:sub(i, j), i, j, state.indentLevel)
+  return PodiumState.new(state.source, i, j, state.indentLevel)
 end
 
 ---@param state PodiumState
@@ -706,13 +706,13 @@ local function process(source, target)
     else
       elements = append(
         slice(elements, 1, i - 1),
-        PodiumElement.new(
+        { PodiumElement.new(
           "skip",
           source:sub(element.startIndex, element.endIndex),
           element.startIndex,
           element.endIndex,
           0
-        ),
+        ) },
         slice(elements, i + 1)
       )
       i = i + 1
