@@ -125,7 +125,8 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits lines by mixed newline characters", function()
-      local actual = pod.splitLines(pod.PodiumState.new("foo\r\nbar\rbazz\nhoge"))
+      local actual =
+        pod.splitLines(pod.PodiumState.new("foo\r\nbar\rbazz\nhoge"))
       local expected = { "foo\r\n", "bar\r", "bazz\n", "hoge" }
       assert.are.same(expected, actual)
     end)
@@ -192,7 +193,8 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by empty line", function()
-      local actual = pod.splitParagraphs(pod.PodiumState.new("foo\n\nbar\n\nbazz"))
+      local actual =
+        pod.splitParagraphs(pod.PodiumState.new("foo\n\nbar\n\nbazz"))
       local expected = {
         {
           kind = "para",
