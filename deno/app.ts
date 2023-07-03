@@ -20,12 +20,8 @@ function process(source: string, target: string): string {
     throw new Error(error);
   }
   lua.lua_getfield(state, -1, "process");
-  if (lua.lua_isnil(state, -1)) {
-    lua.lua_close(state);
-    throw new Error("Podium.process is nil");
-  }
   lua.lua_pushliteral(state, source);
-  lua.lua_pushliteral(state, target);
+  lua.lua_getfield(state, -3, target);
   lua.lua_pcall(state, 2, 1, 0);
   const result = lua.lua_tojsstring(state, -1);
   lua.lua_close(state);

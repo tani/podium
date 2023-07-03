@@ -924,11 +924,8 @@ local function splitList(element)
 end
 
 ---@param source string
----@param target PodiumConverter | string
+---@param target PodiumConverter
 local function process(source, target)
-  if type(target) ~= "table" then
-    target = M[target]
-  end
   local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
   local nl = guessNewline(source)
   local shouldProcess = false
