@@ -3,10 +3,5 @@
   "deno.enable": true,
   "deno.inlayHints.functionLikeReturnTypes.enabled": true,
   "deno.inlayHints.variableTypes.enabled": true,
-  "deno.inlayHints.parameterTypes.enabled": true,
-  "Lua.diagnostics.globals": [
-    "it",
-    "describe"
-  ],
-  "Lua.hint.enable": true
+  "deno.inlayHints.parameterTypes.enabled": true
 }

@@ -33,7 +33,7 @@ local _ -- dummy
 ---@alias PodiumElementKindInlineCmd
 ---| 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
 ---| 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
----@alias PodiumElementKindBlockCmd
+---@alias PodiumElementKindBlockCmd -- All block commands defined in POD spec
 ---| 'pod'
 ---| 'cut'
 ---| 'encoding'
@@ -46,7 +46,7 @@ local _ -- dummy
 ---| 'head2'
 ---| 'head3'
 ---| 'head4'
----@alias PodiumElementKindInternalConstituent
+---@alias PodiumElementKindInternalConstituent -- All internal constituents
 ---| 'list'
 ---| 'items'
 ---| 'itempart'
@@ -59,16 +59,15 @@ local _ -- dummy
 ---| PodiumElementKindBlockCmd
 ---| PodiumElementKindInlineCmd
 ---| PodiumElementKindInternalConstituent
----| string
+---| string if you want to add custom block comando, use this type
 ---@class PodiumElement
----@field kind PodiumElementKind
----@field value string
----@field source string
----@field startIndex integer
----@field endIndex integer
----@field indentLevel integer
----@field [string] any
-
+---@field kind PodiumElementKind The kind of the element
+---@field value string The content text of the element
+---@field source string The source text of the element
+---@field startIndex integer The index of the first character of the element in the source text.
+---@field endIndex integer The index of the last character of the element in the source text.
+---@field indentLevel integer The first character of the line following a line break is indented at this indent size.
+---@field [string] any extra properties: listStyle and so on.
 local PodiumElement = {}
 
 ---@param source string The source text of the element
@@ -80,13 +79,19 @@ local PodiumElement = {}
 ---@param extraProps? table (default: {}) The extra properties of the element
 ---@return PodiumElement
 function PodiumElement.new(source, startIndex, endIndex, indentLevel, kind, value, extraProps)
+  startIndex = startIndex or 1
+  endIndex = endIndex or #source
+  indentLevel = indentLevel or 0
+  kind = kind or "text"
+  value = value or source:sub(startIndex, endIndex)
+  extraProps = extraProps or {}
   return setmetatable({
     source = source,
-    startIndex = startIndex or 1,
-    endIndex = endIndex or #source,
-    indentLevel = indentLevel or 0,
-    kind = kind or "text",
-    value = value or source,
+    startIndex = startIndex,
+    endIndex = endIndex,
+    indentLevel = indentLevel,
+    kind = kind,
+    value = value,
   }, { __index = extraProps })
 end
 
@@ -328,7 +333,7 @@ local function findInline(source, startIndex, endIndex)
   error("Failed to find inline command")
 end
 
----@type PodiumConvertElementSource
+---@type PodiumBackendElement
 local function splitParagraphs(element)
   local state_list = 0
   local state_para = 0
@@ -571,7 +576,7 @@ local function splitParagraphs(element)
   return paragraphs
 end
 
----@type PodiumConvertElementSource
+---@type PodiumBackendElement
 local function splitItem(element)
   local itemState = 0
   ---@type string[]
@@ -659,7 +664,7 @@ local function splitItem(element)
   return parts
 end
 
----@type PodiumConvertElementSource
+---@type PodiumBackendElement
 local function splitItems(element)
   ---@type PodiumElement[]
   local items = {}
@@ -757,7 +762,7 @@ local function splitItems(element)
   return items
 end
 
----@type PodiumConvertElementSource
+---@type PodiumBackendElement
 local function splitTokens(element)
   ---@type PodiumElement[]
   local tokens = {}
@@ -807,7 +812,7 @@ local function splitTokens(element)
   return tokens
 end
 
----@type PodiumConvertElementSource
+---@type PodiumBackendElement
 local function splitList(element)
   ---@type 'over' | 'items' | 'back'
   local listState = "over"
@@ -923,68 +928,78 @@ local function splitList(element)
   }
 end
 
----@param source string
----@param target PodiumConverter
-local function process(source, target)
-  local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
-  local nl = guessNewline(source)
-  local shouldProcess = false
-  local i = 1
-  while i <= #elements do
-    local element = elements[i]
-    if element.kind == "pod" then
-      shouldProcess = true
-    end
-    if shouldProcess then
-      if element.kind == "text" then
-        i = i + 1
-      else
-        if not element.source then
-          error("element.source is nil")
+---@class PodiumProcessor
+---@field backend PodiumBackend
+---@field process fun(self: PodiumProcessor, source:string): string
+local PodiumProcessor = {}
+
+---@param backend PodiumBackend
+---@return PodiumProcessor
+function PodiumProcessor.new(backend)
+  return {
+    backend = backend,
+    process = function(self, source)
+      local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
+      local nl = guessNewline(source)
+      local shouldProcess = false
+      local i = 1
+      while i <= #elements do
+        local element = elements[i]
+        if element.kind == "pod" then
+          shouldProcess = true
         end
-        elements = append(
-          slice(elements, 1, i - 1),
-          target[element.kind](element),
-          slice(elements, i + 1)
-        )
+        if shouldProcess then
+          if element.kind == "text" then
+            i = i + 1
+          else
+            if not element.source then
+              error("element.source is nil")
+            end
+            elements = append(
+              slice(elements, 1, i - 1),
+              self.backend[element.kind](element),
+              slice(elements, i + 1)
+            )
+          end
+        else
+          elements = append(slice(elements, 1, i - 1), {
+            PodiumElement.new(
+              source,
+              element.startIndex,
+              element.endIndex,
+              0,
+              "skip",
+              source:sub(element.startIndex, element.endIndex)
+            ),
+          }, slice(elements, i + 1))
+          i = i + 1
+        end
+        if element.kind == "cut" then
+          shouldProcess = false
+        end
       end
-    else
-      elements = append(slice(elements, 1, i - 1), {
-        PodiumElement.new(
-          source,
-          element.startIndex,
-          element.endIndex,
-          0,
-          "skip",
-          source:sub(element.startIndex, element.endIndex)
-        ),
-      }, slice(elements, i + 1))
-      i = i + 1
+      elements = append(
+        self.backend["preamble"](PodiumElement.new(source, 1, #source, 0)),
+        elements,
+        self.backend["postamble"](PodiumElement.new(source, 1, #source, 0))
+      )
+      local output = ""
+      for _, element in ipairs(elements) do
+        if element.kind ~= "skip" then
+          local text = element.value:gsub(nl, nl .. (" "):rep(element.indentLevel))
+          output = output .. text
+        end
+      end
+      return output
     end
-    if element.kind == "cut" then
-      shouldProcess = false
-    end
-  end
-  elements = append(
-    target["preamble"](PodiumElement.new(source, 1, #source, 0)),
-    elements,
-    target["postamble"](PodiumElement.new(source, 1, #source, 0))
-  )
-  local output = ""
-  for _, element in ipairs(elements) do
-    if element.kind ~= "skip" then
-      local text = element.value:gsub(nl, nl .. (" "):rep(element.indentLevel))
-      output = output .. text
-    end
-  end
-  return output
+  }
 end
 
----@alias PodiumConvertElementSource fun(element: PodiumElement): PodiumElement[]
----@alias PodiumConverter table<PodiumElementKind, PodiumConvertElementSource>
+---@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
+---@alias PodiumBackend table<PodiumElementKind, PodiumBackendElement>
 
----@param tbl PodiumConverter
----@return PodiumConverter
+---@param tbl PodiumBackend
+---@return PodiumBackend
 local function rules(tbl)
   return setmetatable(tbl, {
     __index = function(_table, _key)
@@ -1430,7 +1445,7 @@ local markdown = rules({
   end,
 })
 
----@type PodiumConvertElementSource
+---@type PodiumBackendElement
 local function vimdoc_head(element)
   local nl = guessNewline(element.source)
   element.startIndex =
@@ -1861,6 +1876,7 @@ local latex = rules({
 })
 
 M.PodiumElement = PodiumElement
+M.PodiumProcessor = PodiumProcessor
 M.findInline = findInline
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
@@ -1869,7 +1885,6 @@ M.splitItems = splitItems
 M.findInline = findInline
 M.splitTokens = splitTokens
 M.splitList = splitList
-M.process = process
 M.html = html
 M.markdown = markdown
 M.latex = latex
@@ -1887,7 +1902,8 @@ if arg then
    else
      input = io.read("*a")
    end
-   local output = M.process(input, M[arg[1]])
+   local processor = PodiumProcessor.new(M[arg[1]])
+   local output = processor:process(input)
    if arg[3] then
      local ofile = io.open(arg[3], "w")
      if not ofile then
