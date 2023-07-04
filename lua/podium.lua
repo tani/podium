@@ -928,70 +928,75 @@ local function splitList(element)
   }
 end
 
----@class PodiumProcessor
+---@class Podiumnrocessor
 ---@field backend PodiumBackend
 ---@field process fun(self: PodiumProcessor, source:string): string
 local PodiumProcessor = {}
+
+---@param self PodiumProcessor
+---@param source string
+---@return string
+local function process(self, source)
+  local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
+  local nl = guessNewline(source)
+  local shouldProcess = false
+  local i = 1
+  while i <= #elements do
+    local element = elements[i]
+    if element.kind == "pod" then
+      shouldProcess = true
+    end
+    if shouldProcess then
+      if element.kind == "text" then
+        i = i + 1
+      else
+        if not element.source then
+          error("element.source is nil")
+        end
+        elements = append(
+          slice(elements, 1, i - 1),
+          self.backend[element.kind](element),
+          slice(elements, i + 1)
+        )
+      end
+    else
+      elements = append(slice(elements, 1, i - 1), {
+        PodiumElement.new(
+          source,
+          element.startIndex,
+          element.endIndex,
+          0,
+          "skip",
+          source:sub(element.startIndex, element.endIndex)
+        ),
+      }, slice(elements, i + 1))
+      i = i + 1
+    end
+    if element.kind == "cut" then
+      shouldProcess = false
+    end
+  end
+  elements = append(
+    self.backend["preamble"](PodiumElement.new(source, 1, #source, 0)),
+    elements,
+    self.backend["postamble"](PodiumElement.new(source, 1, #source, 0))
+  )
+  local output = ""
+  for _, element in ipairs(elements) do
+    if element.kind ~= "skip" then
+      local text = element.value:gsub(nl, nl .. (" "):rep(element.indentLevel))
+      output = output .. text
+    end
+  end
+  return output
+end
 
 ---@param backend PodiumBackend
 ---@return PodiumProcessor
 function PodiumProcessor.new(backend)
   return {
     backend = backend,
-    process = function(self, source)
-      local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
-      local nl = guessNewline(source)
-      local shouldProcess = false
-      local i = 1
-      while i <= #elements do
-        local element = elements[i]
-        if element.kind == "pod" then
-          shouldProcess = true
-        end
-        if shouldProcess then
-          if element.kind == "text" then
-            i = i + 1
-          else
-            if not element.source then
-              error("element.source is nil")
-            end
-            elements = append(
-              slice(elements, 1, i - 1),
-              self.backend[element.kind](element),
-              slice(elements, i + 1)
-            )
-          end
-        else
-          elements = append(slice(elements, 1, i - 1), {
-            PodiumElement.new(
-              source,
-              element.startIndex,
-              element.endIndex,
-              0,
-              "skip",
-              source:sub(element.startIndex, element.endIndex)
-            ),
-          }, slice(elements, i + 1))
-          i = i + 1
-        end
-        if element.kind == "cut" then
-          shouldProcess = false
-        end
-      end
-      elements = append(
-        self.backend["preamble"](PodiumElement.new(source, 1, #source, 0)),
-        elements,
-        self.backend["postamble"](PodiumElement.new(source, 1, #source, 0))
-      )
-      local output = ""
-      for _, element in ipairs(elements) do
-        if element.kind ~= "skip" then
-          local text = element.value:gsub(nl, nl .. (" "):rep(element.indentLevel))
-          output = output .. text
-        end
-      end
-      return output
-    end
+    process = process
   }
 end
 

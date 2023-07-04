@@ -1,24 +1,14 @@
 import { Hono } from "https://lib.deno.dev/x/hono@v3/mod.ts";
 import { serveStatic } from "https://lib.deno.dev/x/hono@v3/middleware.ts";
 import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
-import { createPodium, BackendName } from "./podium.ts";
-import { LuaFactory } from "https://esm.sh/wasmoon@1.15.0?bundle"
-
-const luaFactory = new LuaFactory("https://esm.sh/wasmoon@1.15.0/dist/glue.wasm");
-const luaEngine = await luaFactory.createEngine();
-
-const podium = await createPodium({
-  luaEngine: luaEngine,
-  podiumUrl: (new URL("./podium.lua", import.meta.url)).toString(),
-})
+import { process } from "./podium.ts";
 
 const app = new Hono();
 
-app.post("/:target{html|markdown|latex|vimdoc}", async (ctx) => {
+app.post("/:backend{html|markdown|latex|vimdoc}", async (ctx) => {
   const source = await ctx.req.text();
-  const target = ctx.req.param("target");
-  const processor = podium.PodiumProcessor.new(podium[target as BackendName]);
-  const result = processor.process(processor, source);
+  const backend = ctx.req.param("backend");
+  const result = await process(source, backend);
   return ctx.text(result);
 });
 
