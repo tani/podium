@@ -62,8 +62,9 @@ the usage instructions provided in the subsequent sections.
 
   local podium = require('podium')
   local inputString = "..."
-  local outputFormat = podium.html -- or podium.markdown, podium.latex
-  podium.process(inputString, outputFormat) -- returns output string
+  local outputFormat = podium.html -- or markdown, latex, vimdoc
+  local processor = podium.PodiumProcessor.new(outputFormat)
+  print(processor:process(inputString)) -- process returns output string
 
 =head2 License
 
