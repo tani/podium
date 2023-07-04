@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
 import { createPodium, BackendName } from "./podium.ts";
 
 const podium = await createPodium({
-  wasmoonJsUrl: "https://esm.sh/wasmoon@0.15.0",
+  wasmoonJsUrl: "https://esm.sh/wasmoon@1.15.0",
   wasmoonWasmUrl: "https://esm.sh/wasmoon@1.15.0/dist/glue.wasm",
   podiumUrl: (new URL("./podium.lua", import.meta.url)).toString(),
 })
