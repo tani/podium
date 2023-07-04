@@ -22,6 +22,14 @@ describe("POD Parser", function()
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
         {
+          kind = "text",
+          source = source,
+          startIndex = -1,
+          endIndex = -1,
+          indentLevel = 4,
+          value = "\n",
+        },
+        {
           kind = "over",
           value = unindent([[
           =over
@@ -52,8 +60,16 @@ describe("POD Parser", function()
           source = source,
           startIndex = 14,
           endIndex = 19,
-          indentLevel = 0,
+          indentLevel = 4,
           listStyle = "unordered",
+        },
+        {
+          kind = "text",
+          source = source,
+          startIndex = -1,
+          endIndex = -1,
+          indentLevel = 0,
+          value = "\n",
         },
       }
       assert.are.same(expected, actual)
@@ -68,6 +84,14 @@ describe("POD Parser", function()
       ]])
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
+        {
+          kind = "text",
+          source = source,
+          startIndex = -1,
+          endIndex = -1,
+          indentLevel = 8,
+          value = "\n",
+        },
         {
           kind = "over",
           value = unindent([[
@@ -99,8 +123,16 @@ describe("POD Parser", function()
           source = source,
           startIndex = 16,
           endIndex = 21,
-          indentLevel = 0,
+          indentLevel = 8,
           listStyle = "unordered",
+        },
+        {
+          kind = "text",
+          source = source,
+          startIndex = -1,
+          endIndex = -1,
+          indentLevel = 0,
+          value = "\n",
         },
       }
       assert.are.same(expected, actual)
@@ -121,6 +153,14 @@ describe("POD Parser", function()
       ]])
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
+        {
+          kind = "text",
+          source = source,
+          startIndex = -1,
+          endIndex = -1,
+          indentLevel = 8,
+          value = "\n",
+        },
         {
           kind = "over",
           value = unindent([[
@@ -158,8 +198,16 @@ describe("POD Parser", function()
           source = source,
           startIndex = 44,
           endIndex = 49,
-          indentLevel = 0,
+          indentLevel = 8,
           listStyle = "unordered",
+        },
+        {
+          kind = "text",
+          source = source,
+          startIndex = -1,
+          endIndex = -1,
+          indentLevel = 0,
+          value = "\n",
         },
       }
       assert.are.same(expected, actual)

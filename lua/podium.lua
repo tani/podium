@@ -885,8 +885,8 @@ local function splitList(element)
   return {
     PodiumElement.new(
       element.source,
-      element.startIndex,
-      over_endIndex,
+      -1,
+      -1,
       (element.indentLevel + indentLevel),
       "text",
       guessNewline(element.source)
@@ -919,8 +919,8 @@ local function splitList(element)
     ),
     PodiumElement.new(
       element.source,
-      back_endIndex + 1,
-      element.endIndex,
+      -1,
+      -1,
       element.indentLevel,
       "text",
       guessNewline(element.source)
