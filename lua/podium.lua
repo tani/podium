@@ -1003,10 +1003,112 @@ function PodiumProcessor.new(backend)
   })
 end
 
+---@param self PodiumBackend
+---@param name string
+---@param fun fun(content: string): string
+local function registerSimpleInlineCommand(self, name, fun)
+  self.rules[name] = function(element)
+    local _, b_arg, e_arg, _ = findInline(element.source, element.startIndex, element.endIndex)
+    local arg = element.source:sub(b_arg, e_arg)
+    return {
+      PodiumElement.new(
+        element.source,
+        element.startIndex,
+        element.endIndex,
+        element.indentLevel,
+        "text",
+        fun(arg)
+      )
+    }
+  end
+  return self
+end
+
+---@param self PodiumBackend
+---@param name string
+---@param fun fun(content: string): string
+---@return PodiumBackend
+local function registerSimpleBlockCommand(self, name, fun)
+  self.rules[name] = function(element)
+    local arg = element.source
+      :sub(element.startIndex, element.endIndex)
+      :gsub("^=%S+", "")
+    return {
+      PodiumElement.new(
+        element.source,
+        element.startIndex,
+        element.endIndex,
+        element.indentLevel,
+        "text",
+        fun(arg)
+      )
+    }
+  end
+  return self
+end
+
+---@param self PodiumBackend
+---@param name string
+---@param fun fun(content: string): string
+---@return PodiumBackend
+local function registerSimpleFencedCommand(self, name, fun)
+  self.rules[name] = function(element)
+    ---@type string[]
+    local lines = {}
+    local blockState = 0
+    for _, line in ipairs(splitLines(element)) do
+      if blockState == 0 then
+        if line:match("^=begin") then
+          blockState = 1
+        end
+      elseif blockState == 1 then
+        if line:match("^%s*$") then
+          table.insert(lines, line)
+          blockState = 2
+        end
+      elseif blockState == 2 then
+        if line:match("^%s*$") then
+          table.insert(lines, line)
+          blockState = 3
+        else
+          table.insert(lines, line)
+        end
+      elseif blockState == 3 then
+        if line:match("^=end") then
+          blockState = 4
+        else
+          table.insert(lines, line)
+          blockState = 3
+        end
+      end
+    end
+    local arg = table.concat(lines, guessNewline(element.source))
+    return {
+      PodiumElement.new(
+        element.source,
+        element.startIndex,
+        element.endIndex,
+        element.indentLevel,
+        "text",
+        fun(arg)
+      )
+    }
+  end
+  return self
+end
+
 ---@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
 ---@class PodiumBackend
 ---@field rules table<string, PodiumBackendElement>
-local PodiumBackend = {}
+---@field registerSimpleInlineCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field registerSimpleBlockCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field registerSimpleFencedCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+local PodiumBackend = {
+  rules = {},
+  registerSimpleInlineCommand = registerSimpleInlineCommand,
+  registerSimpleBlockCommand = registerSimpleBlockCommand,
+  registerSimpleFencedCommand = registerSimpleFencedCommand,
+}
 
 ---@param rules table<string, PodiumBackendElement>
 ---@return PodiumBackend
