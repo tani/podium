@@ -27,6 +27,7 @@ describe("POD Parser", function()
           startIndex = -1,
           endIndex = -1,
           indentLevel = 4,
+          extraProps = {},
           value = "\n",
         },
         {
@@ -39,7 +40,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 7,
           indentLevel = 4,
-          listStyle = "unordered",
+          extraProps = { listStyle = "unordered" },
         },
         {
           kind = "items",
@@ -51,6 +52,7 @@ describe("POD Parser", function()
           startIndex = 8,
           endIndex = 13,
           indentLevel = 4,
+          extraProps = {},
         },
         {
           kind = "back",
@@ -61,7 +63,7 @@ describe("POD Parser", function()
           startIndex = 14,
           endIndex = 19,
           indentLevel = 4,
-          listStyle = "unordered",
+          extraProps = { listStyle = "unordered" },
         },
         {
           kind = "text",
@@ -69,6 +71,7 @@ describe("POD Parser", function()
           startIndex = -1,
           endIndex = -1,
           indentLevel = 0,
+          extraProps = {},
           value = "\n",
         },
       }
@@ -90,6 +93,7 @@ describe("POD Parser", function()
           startIndex = -1,
           endIndex = -1,
           indentLevel = 8,
+          extraProps = {},
           value = "\n",
         },
         {
@@ -102,7 +106,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 9,
           indentLevel = 8,
-          listStyle = "unordered",
+          extraProps = { listStyle = "unordered" },
         },
         {
           kind = "items",
@@ -114,6 +118,7 @@ describe("POD Parser", function()
           startIndex = 10,
           endIndex = 15,
           indentLevel = 8,
+          extraProps = {},
         },
         {
           kind = "back",
@@ -124,7 +129,7 @@ describe("POD Parser", function()
           startIndex = 16,
           endIndex = 21,
           indentLevel = 8,
-          listStyle = "unordered",
+          extraProps = { listStyle = "unordered" },
         },
         {
           kind = "text",
@@ -132,6 +137,7 @@ describe("POD Parser", function()
           startIndex = -1,
           endIndex = -1,
           indentLevel = 0,
+          extraProps = {},
           value = "\n",
         },
       }
@@ -159,6 +165,7 @@ describe("POD Parser", function()
           startIndex = -1,
           endIndex = -1,
           indentLevel = 8,
+          extraProps = {},
           value = "\n",
         },
         {
@@ -171,7 +178,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 9,
           indentLevel = 8,
-          listStyle = "unordered",
+          extraProps = { listStyle = "unordered" },
         },
         {
           kind = "items",
@@ -189,6 +196,7 @@ describe("POD Parser", function()
           startIndex = 10,
           endIndex = 43,
           indentLevel = 8,
+          extraProps = {},
         },
         {
           kind = "back",
@@ -199,7 +207,7 @@ describe("POD Parser", function()
           startIndex = 44,
           endIndex = 49,
           indentLevel = 8,
-          listStyle = "unordered",
+          extraProps = { listStyle = "unordered" },
         },
         {
           kind = "text",
@@ -207,6 +215,7 @@ describe("POD Parser", function()
           startIndex = -1,
           endIndex = -1,
           indentLevel = 0,
+          extraProps = {},
           value = "\n",
         },
       }
@@ -264,6 +273,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 12,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "skip",
@@ -272,6 +282,7 @@ describe("POD Parser", function()
           startIndex = 13,
           endIndex = 13,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "head2",
@@ -283,6 +294,7 @@ describe("POD Parser", function()
           startIndex = 14,
           endIndex = 26,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "head3",
@@ -294,6 +306,7 @@ describe("POD Parser", function()
           startIndex = 27,
           endIndex = 38,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -302,6 +315,7 @@ describe("POD Parser", function()
           startIndex = 39,
           endIndex = 42,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -320,6 +334,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 5,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -331,6 +346,7 @@ describe("POD Parser", function()
           startIndex = 6,
           endIndex = 10,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -339,6 +355,7 @@ describe("POD Parser", function()
           startIndex = 11,
           endIndex = 14,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -368,6 +385,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 5,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "list",
@@ -385,6 +403,7 @@ describe("POD Parser", function()
           startIndex = 6,
           endIndex = 42,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -393,6 +412,7 @@ describe("POD Parser", function()
           startIndex = 43,
           endIndex = 46,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -428,6 +448,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 5,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "list",
@@ -451,6 +472,7 @@ describe("POD Parser", function()
           startIndex = 6,
           endIndex = 68,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -459,6 +481,7 @@ describe("POD Parser", function()
           startIndex = 69,
           endIndex = 72,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -486,6 +509,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 5,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "html",
@@ -501,6 +525,7 @@ describe("POD Parser", function()
           startIndex = 6,
           endIndex = 41,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -509,6 +534,7 @@ describe("POD Parser", function()
           startIndex = 42,
           endIndex = 44,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -527,6 +553,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 12,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -555,6 +582,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 5,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "list",
@@ -571,6 +599,7 @@ describe("POD Parser", function()
           startIndex = 6,
           endIndex = 45,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -592,6 +621,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 26,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -618,6 +648,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 13,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "list",
@@ -632,6 +663,7 @@ describe("POD Parser", function()
           startIndex = 14,
           endIndex = 48,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "para",
@@ -640,6 +672,7 @@ describe("POD Parser", function()
           startIndex = 49,
           endIndex = 62,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -663,6 +696,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 11,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "item",
@@ -674,6 +708,7 @@ describe("POD Parser", function()
           startIndex = 12,
           endIndex = 22,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "item",
@@ -683,6 +718,7 @@ describe("POD Parser", function()
           startIndex = 23,
           endIndex = 32,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -716,6 +752,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 46,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "item",
@@ -724,6 +761,7 @@ describe("POD Parser", function()
           startIndex = 47,
           endIndex = 56,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -742,6 +780,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 13,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -767,6 +806,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 14,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "list",
@@ -780,6 +820,7 @@ describe("POD Parser", function()
           startIndex = 15,
           endIndex = 33,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "itempart",
@@ -788,6 +829,7 @@ describe("POD Parser", function()
           startIndex = 34,
           endIndex = 37,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -805,6 +847,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 7,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)
@@ -820,6 +863,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 8,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "C",
@@ -828,6 +872,7 @@ describe("POD Parser", function()
           startIndex = 9,
           endIndex = 15,
           indentLevel = 0,
+          extraProps = {},
         },
         {
           kind = "text",
@@ -836,6 +881,7 @@ describe("POD Parser", function()
           startIndex = 16,
           endIndex = 20,
           indentLevel = 0,
+          extraProps = {},
         },
       }
       assert.are.same(expected, actual)

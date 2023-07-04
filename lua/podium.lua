@@ -67,7 +67,7 @@ local _ -- dummy
 ---@field startIndex integer The index of the first character of the element in the source text.
 ---@field endIndex integer The index of the last character of the element in the source text.
 ---@field indentLevel integer The first character of the line following a line break is indented at this indent size.
----@field [string] any extra properties: listStyle and so on.
+---@field extraProps table The extra properties of the element
 local PodiumElement = {}
 
 ---@param source string The source text of the element
@@ -92,7 +92,8 @@ function PodiumElement.new(source, startIndex, endIndex, indentLevel, kind, valu
     indentLevel = indentLevel,
     kind = kind,
     value = value,
-  }, { __index = extraProps })
+    extraProps = extraProps,
+  }, { __index = PodiumElement })
 end
 
 ---@param t table
@@ -928,7 +929,7 @@ local function splitList(element)
   }
 end
 
----@class Podiumnrocessor
+---@class PodiumProcessor
 ---@field backend PodiumBackend
 ---@field process fun(self: PodiumProcessor, source:string): string
 local PodiumProcessor = {}
@@ -955,7 +956,7 @@ local function process(self, source)
         end
         elements = append(
           slice(elements, 1, i - 1),
-          self.backend[element.kind](element),
+          self.backend.rules[element.kind](element),
           slice(elements, i + 1)
         )
       end
@@ -977,9 +978,9 @@ local function process(self, source)
     end
   end
   elements = append(
-    self.backend["preamble"](PodiumElement.new(source, 1, #source, 0)),
+    self.backend.rules["preamble"](PodiumElement.new(source, 1, #source, 0)),
     elements,
-    self.backend["postamble"](PodiumElement.new(source, 1, #source, 0))
+    self.backend.rules["postamble"](PodiumElement.new(source, 1, #source, 0))
   )
   local output = ""
   for _, element in ipairs(elements) do
@@ -994,24 +995,33 @@ end
 ---@param backend PodiumBackend
 ---@return PodiumProcessor
 function PodiumProcessor.new(backend)
-  return {
+  return setmetatable({
     backend = backend,
     process = process
-  }
+  }, {
+    __index = PodiumProcessor
+  })
 end
 
 ---@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
----@alias PodiumBackend table<PodiumElementKind, PodiumBackendElement>
+---@class PodiumBackend
+---@field rules table<string, PodiumBackendElement>
+local PodiumBackend = {}
 
----@param tbl PodiumBackend
+---@param rules table<string, PodiumBackendElement>
 ---@return PodiumBackend
-local function rules(tbl)
-  return setmetatable(tbl, {
+function PodiumBackend.new(rules)
+  setmetatable(rules, {
     __index = function(_table, _key)
-      return function(_source, _startIndex, _endIndex)
+      return function(_element)
         return {}
       end
     end,
+  })
+  return setmetatable({
+    rules = rules
+  }, {
+    __index = PodiumBackend
   })
 end
 
@@ -1023,7 +1033,7 @@ local function parsed_token(value, indentLevel, source)
   return PodiumElement.new(source, -1, -1, indentLevel, "text", value)
 end
 
-local html = rules({
+local html = PodiumBackend.new({
   preamble = function(element)
     return {}
   end,
@@ -1085,7 +1095,7 @@ local html = rules({
   end,
   over = function(element)
     local nl = guessNewline(element.source)
-    if element.listStyle == "ordered" then
+    if element.extraProps.listStyle == "ordered" then
       return { parsed_token("<ol>" .. nl, element.indentLevel, element.source) }
     else
       return { parsed_token("<ul>" .. nl, element.indentLevel, element.source) }
@@ -1093,7 +1103,7 @@ local html = rules({
   end,
   back = function(element)
     local nl = guessNewline(element.source)
-    if element.listStyle == "ordered" then
+    if element.extraProps.listStyle == "ordered" then
       return { parsed_token("</ol>" .. nl, element.indentLevel, element.source) }
     else
       return { parsed_token("</ul>" .. nl, element.indentLevel, element.source) }
@@ -1237,7 +1247,7 @@ local html = rules({
   end,
 })
 
-local markdown = rules({
+local markdown = PodiumBackend.new({
   preamble = function(element)
     return {}
   end,
@@ -1479,7 +1489,7 @@ local function vimdoc_head(element)
   end
 end
 
-local vimdoc = rules({
+local vimdoc = PodiumBackend.new({
   preamble = function(element)
     local nl = guessNewline(element.source)
     local frontmatter = parseFrontMatter(element.source)
@@ -1662,7 +1672,7 @@ local vimdoc = rules({
   end,
 })
 
-local latex = rules({
+local latex = PodiumBackend.new({
   preamble = function(element)
     return {}
   end,
@@ -1709,7 +1719,7 @@ local latex = rules({
   end,
   over = function(element)
     local nl = guessNewline(element.source)
-    if element.listStyle == "ordered" then
+    if element.extraProps.listStyle == "ordered" then
       return { parsed_token("\\begin{enumerate}" .. nl, element.indentLevel, element.source) }
     else
       return { parsed_token("\\begin{itemize}" .. nl, element.indentLevel, element.source) }
@@ -1717,7 +1727,7 @@ local latex = rules({
   end,
   back = function(element)
     local nl = guessNewline(element.source)
-    if element.listStyle == "ordered" then
+    if element.extraProps.listStyle == "ordered" then
       return { parsed_token("\\end{enumerate}" .. nl, element.indentLevel, element.source) }
     else
       return { parsed_token("\\end{itemize}" .. nl, element.indentLevel, element.source) }
@@ -1882,6 +1892,7 @@ local latex = rules({
 
 M.PodiumElement = PodiumElement
 M.PodiumProcessor = PodiumProcessor
+M.PodiumBackend = PodiumBackend
 M.findInline = findInline
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
