@@ -1,0 +1,12 @@
+{
+  "workspace.ignoreDir": [
+    ".vscode",
+    ".git",
+    "deno"
+  ],
+  "diagnostics.globals": [
+    "it",
+    "describe"
+  ],
+  "hint.enable": true
+}
