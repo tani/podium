@@ -2,9 +2,9 @@ import { Hono } from "https://lib.deno.dev/x/hono@v3/mod.ts";
 import { serveStatic } from "https://lib.deno.dev/x/hono@v3/middleware.ts";
 import { serve } from "https://deno.land/std@0.191.0/http/server.ts";
 import { createPodium, BackendName } from "./podium.ts";
-import { LuaFactory } from "https://esm.sh/wasmoon@1"
+import { LuaFactory } from "https://esm.sh/wasmoon@1.15.0"
 
-const luaFactory = new LuaFactory("https://esm.sh/wasmoon@1/dist/glue.wasm");
+const luaFactory = new LuaFactory("https://esm.sh/wasmoon@1.15.0/dist/glue.wasm");
 const luaEngine = await luaFactory.createEngine();
 
 const podium = await createPodium({
