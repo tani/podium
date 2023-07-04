@@ -1,3 +1,4 @@
+import type { LuaEngine } from "https://esm.sh/wasmoon@1";
 export type BackendName = 'html' | 'markdown' | 'latex' | 'vimdoc';
 
 export type PodiumProcessor = {
@@ -15,15 +16,11 @@ export type Podium = {
 }
 
 export interface PodiumOptions {
-  wasmoonJsUrl: string;
-  wasmoonWasmUrl: string;
+  luaEngine: LuaEngine;
   podiumUrl: string;
 }
 
 export async function createPodium(options: PodiumOptions): Promise<Podium> {
-  const { LuaFactory } = await import(options.wasmoonJsUrl);
-  const factory = new LuaFactory(options.wasmoonWasmUrl);
-  const lua = await factory.createEngine();
   const podiumLua = await fetch(options.podiumUrl).then((r) => r.text());
-  return await lua.doString(podiumLua.replace("#!/usr/bin/env lua", ""));
+  return await options.luaEngine.doString(podiumLua.replace("#!/usr/bin/env lua", ""));
 }
