@@ -152,7 +152,6 @@ C<name> is the name of the data paragraph, e.g., html or markdown.
   local processor = podium.PodiumProcessor.new(backend)
   print(processor:process(inputString)) -- process returns output string
 
-
 =head2 License
 
 Licensed under MIT License.

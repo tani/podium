@@ -47,6 +47,7 @@ local _ -- dummy
 ---| 'head3'
 ---| 'head4'
 ---@alias PodiumElementKindInternalConstituent -- All internal constituents
+---| 'backspace'
 ---| 'list'
 ---| 'items'
 ---| 'itempart'
@@ -54,7 +55,6 @@ local _ -- dummy
 ---| 'text'
 ---| 'preamble'
 ---| 'postamble'
----| 'skip'
 ---@alias PodiumElementKind
 ---| PodiumElementKindBlockCmd
 ---| PodiumElementKindInlineCmd
@@ -467,17 +467,6 @@ local function splitParagraphs(element)
     else
       if line:match("^%s+$") then
         local endIndex = startIndex + #line - 1
-        table.insert(
-          paragraphs,
-          PodiumElement.new(
-            element.source,
-            startIndex,
-            endIndex,
-            element.indentLevel,
-            "skip",
-            line
-          )
-        )
         startIndex = endIndex + 1
       elseif line:match("^=over") then
         table.insert(lines, line)
@@ -886,6 +875,13 @@ local function splitList(element)
       element.source,
       -1,
       -1,
+      element.indentLevel,
+      "backspace"
+    ),
+    PodiumElement.new(
+      element.source,
+      -1,
+      -1,
       (element.indentLevel + indentLevel),
       "text",
       guessNewline(element.source)
@@ -946,7 +942,7 @@ local function process(self, source)
       shouldProcess = true
     end
     if shouldProcess then
-      if element.kind == "text" then
+      if element.kind == "text" or element.kind == "backspace" then
         i = i + 1
       else
         if not element.source then
@@ -959,17 +955,10 @@ local function process(self, source)
         )
       end
     else
-      elements = append(slice(elements, 1, i - 1), {
-        PodiumElement.new(
-          source,
-          element.startIndex,
-          element.endIndex,
-          0,
-          "skip",
-          source:sub(element.startIndex, element.endIndex)
-        ),
-      }, slice(elements, i + 1))
-      i = i + 1
+      elements = append(
+        slice(elements, 1, i - 1),
+        slice(elements, i + 1)
+      )
     end
     if element.kind == "cut" then
       shouldProcess = false
@@ -982,7 +971,10 @@ local function process(self, source)
   )
   local output = ""
   for _, element in ipairs(elements) do
-    if element.kind ~= "skip" then
+    if element.kind == "backspace" then
+      print("CALLED BACKSPACE")
+      output = output:sub(1, #output - 1)
+    else
       local text = element.value:gsub(nl, nl .. (" "):rep(element.indentLevel))
       output = output .. text
     end
@@ -1242,6 +1234,7 @@ local html = PodiumBackend.new({
     return {
       parsed_token("<pre><code>" .. nl, element.indentLevel, element.source),
       parsed_token(element.source:sub(element.startIndex, element.endIndex), element.indentLevel, element.source),
+      PodiumElement.new(element.source, element.endIndex, element.endIndex, element.indentLevel, "backspace"),
       parsed_token("</code></pre>" .. nl, element.indentLevel, element.source),
     }
   end,
@@ -1431,6 +1424,7 @@ local markdown = PodiumBackend.new({
     return {
       parsed_token("```" .. nl, element.indentLevel, element.source),
       parsed_token(element.source:sub(element.startIndex, element.endIndex), element.indentLevel, element.source),
+      PodiumElement.new(element.source, element.endIndex, element.endIndex, element.indentLevel, "backspace"),
       parsed_token("```" .. nl .. nl, element.indentLevel, element.source),
     }
   end,
@@ -1633,6 +1627,7 @@ local vimdoc = PodiumBackend.new({
     return {
       parsed_token(">" .. nl, element.indentLevel, element.source),
       parsed_token(element.source:sub(element.startIndex, element.endIndex), element.indentLevel, element.source),
+      PodiumElement.new(element.source, element.endIndex, element.endIndex, element.indentLevel, "backspace"),
       parsed_token("<" .. nl .. nl, element.indentLevel, element.source),
     }
   end,
@@ -1827,6 +1822,7 @@ local latex = PodiumBackend.new({
     return {
       parsed_token("\\begin{verbatim}" .. nl, element.indentLevel, element.source),
       parsed_token(element.source:sub(element.startIndex, element.endIndex), element.indentLevel, element.source),
+      PodiumElement.new(element.source, element.endIndex, element.endIndex, element.indentLevel, "backspace"),
       parsed_token("\\end{verbatim}" .. nl, element.indentLevel, element.source),
     }
   end,
