@@ -93,11 +93,11 @@ Podium consists of the three components:
 
 =over
 
-=item C<PodiumProcessor> parses POD documents into a tree structure.
+=item * C<PodiumProcessor> parses POD documents into a tree structure.
 
-=item C<PodiumBackend> converts the tree structure into a string.
+=item * C<PodiumBackend> converts the tree structure into a string.
 
-=item C<PodiumElement> represents a node in the tree structure.
+=item * C<PodiumElement> represents a node in the tree structure.
 
 =back
 
