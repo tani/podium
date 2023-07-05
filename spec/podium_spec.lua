@@ -10,6 +10,22 @@ local function unindent(str)
 end
 
 describe("POD Parser", function()
+  describe("trimBlank", function()
+    it("trims blank lines", function()
+      local source = " hoge "
+      local actual = pod.trimBlank(pod.PodiumElement.new(source))
+      local expected = {
+        kind = "text",
+        value = "hoge",
+        source = source,
+        startIndex = 2,
+        endIndex = 5,
+        indentLevel = 0,
+        extraProps = {},
+      }
+      assert.are.same(expected, actual)
+    end)
+  end)
   describe("findFormattingCode", function()
     it("finds formatting code", function()
       local source = "C<bar>"
@@ -42,10 +58,19 @@ describe("POD Parser", function()
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
         {
+          kind = "backspace",
+          value = source,
+          source = source,
+          indentLevel = 0,
+          extraProps = {},
+          startIndex = 1,
+          endIndex = 19,
+        },
+        {
           kind = "text",
           source = source,
-          startIndex = -1,
-          endIndex = -1,
+          startIndex = 1,
+          endIndex = 19,
           indentLevel = 4,
           extraProps = {},
           value = "\n",
@@ -88,8 +113,8 @@ describe("POD Parser", function()
         {
           kind = "text",
           source = source,
-          startIndex = -1,
-          endIndex = -1,
+          startIndex = 1,
+          endIndex = 19,
           indentLevel = 0,
           extraProps = {},
           value = "\n",
@@ -108,10 +133,19 @@ describe("POD Parser", function()
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
         {
+          kind = "backspace",
+          value = source,
+          source = source,
+          indentLevel = 0,
+          startIndex = 1,
+          extraProps = {},
+          endIndex = 21,
+        },
+        {
           kind = "text",
           source = source,
-          startIndex = -1,
-          endIndex = -1,
+          startIndex = 1,
+          endIndex = 21,
           indentLevel = 8,
           extraProps = {},
           value = "\n",
@@ -154,8 +188,8 @@ describe("POD Parser", function()
         {
           kind = "text",
           source = source,
-          startIndex = -1,
-          endIndex = -1,
+          startIndex = 1,
+          endIndex = 21,
           indentLevel = 0,
           extraProps = {},
           value = "\n",
@@ -180,10 +214,19 @@ describe("POD Parser", function()
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
         {
+          kind = "backspace",
+          value = source,
+          source = source,
+          indentLevel = 0,
+          startIndex = 1,
+          extraProps = {},
+          endIndex = 49,
+        },
+        {
           kind = "text",
           source = source,
-          startIndex = -1,
-          endIndex = -1,
+          startIndex = 1,
+          endIndex = 49,
           indentLevel = 8,
           extraProps = {},
           value = "\n",
@@ -232,8 +275,8 @@ describe("POD Parser", function()
         {
           kind = "text",
           source = source,
-          startIndex = -1,
-          endIndex = -1,
+          startIndex = 1,
+          endIndex = 49,
           indentLevel = 0,
           extraProps = {},
           value = "\n",
@@ -292,15 +335,6 @@ describe("POD Parser", function()
           source = source,
           startIndex = 1,
           endIndex = 12,
-          indentLevel = 0,
-          extraProps = {},
-        },
-        {
-          kind = "skip",
-          value = "\n",
-          source = source,
-          startIndex = 13,
-          endIndex = 13,
           indentLevel = 0,
           extraProps = {},
         },
