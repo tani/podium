@@ -1610,7 +1610,7 @@ local vimdoc = PodiumBackend.new({
     return append(
       {
         element:clone({
-          kind = "tex",
+          kind = "text",
           value = string.rep("=", 78 - #nl) .. nl,
         }),
       },
