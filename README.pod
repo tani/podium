@@ -42,13 +42,20 @@ the usage instructions provided in the subsequent sections.
 
 =head2 Usage
 
+To use Podium, you can either use the WebAPI, the command line interface, or
+the application programming interface.
+
 =head3 WebAPI
+
+WebAPI is available at L<https://pod.deno.dev/>.
 
   $ curl --data-binary @path/to/file.pod https://pod.deno.dev/markdown
   $ curl --data-binary `$(cat path/to/file.pod)` https://pod.deno.dev/html
   $ cat path/to/file.pod | curl --data-binary @- https://pod.deno.dev/latex
 
 =head3 Command Line Interface
+
+To run the command line interface, you need to install Lua.
 
   $ podium.lua markdown path/to/file.pod path/to/file.md   # write markdown
   $ podium.lua latex    path/to/file.pod path/to/file.tex  # write latex
@@ -60,11 +67,91 @@ the usage instructions provided in the subsequent sections.
 
 =head3 Application Programming Interface
 
+If you want to use Podium in your own project, you can use the application
+programming interface (API) to convert POD to HTML, Markdown, LaTeX, or Vimdoc.
+
   local podium = require('podium')
   local inputString = "..."
   local outputFormat = podium.html -- or markdown, latex, vimdoc
   local processor = podium.PodiumProcessor.new(outputFormat)
   print(processor:process(inputString)) -- process returns output string
+
+=over
+
+=item 1. Create a new C<PodiumProcessor> object,
+  which takes an output format as an argument.
+
+=item 2. Call the C<process> method on the PodiumProcessor object.
+
+=back
+
+To  customize the output, see below.
+
+=head2 Customization
+
+Podium consists of the three components:
+
+=over
+
+=item C<PodiumProcessor> parses POD documents into a tree structure.
+
+=item C<PodiumBackend> converts the tree structure into a string.
+
+=item C<PodiumElement> represents a node in the tree structure.
+
+=back
+
+Please be relaxed, you don't need to know the details of the tree structure.
+You just need to arrange the simple string-to-string conversion.
+
+You can customize the output by tweaking C<PodiumBackend> instance,
+which has three methods for simple customization:
+
+=head3 C<registerSimpleFormmatingCode(self, name, fun)>
+
+This method registers a simple formatting code, e.g., C<BE<lt>...E<gt>>.
+C<name> is the name of the formatting code: the single capital letter.
+C<fun> is a function that takes a string and returns a string.
+
+  local podium = require('podium')
+  local inputString = "..."
+  local backend = podium.html -- or markdown, latex, vimdoc
+  backend:registerSimpleFormmatingCode('B', function (text)
+    return '<b style="font-weight: bold">' .. text .. '</b>'
+  end)
+  local processor = podium.PodiumProcessor.new(backend)
+  print(processor:process(inputString)) -- process returns output string
+
+=head3 C<registerSimpleCommand(self, name, fun)>
+
+This method registers a simple command, e.g., C<=head1 ...>.
+C<name> is the name of the command defined in the POD document.
+Please do not override C<=begin> and C<=end> commands.
+
+  local podium = require('podium')
+  local inputString = "..."
+  local backend = podium.html -- or markdown, latex, vimdoc
+  backend:registerSimpleCommand('head1', function (text)
+    return '<h1 style="font-weight: bold">' .. text .. '</h1>'
+  end)
+  local processor = podium.PodiumProcessor.new(backend)
+  print(processor:process(inputString)) -- process returns output string
+
+=head3 C<registerSimpleDataParagraph(self, name, fun)>
+
+This method registers a simple data paragraph, e.g., content between
+C<=begin name> and C<=end name> commands.
+C<name> is the name of the data paragraph, e.g., html or markdown.
+
+  local podium = require('podium')
+  local inputString = "..."
+  local backend = podium.html -- or markdown, latex, vimdoc
+  backend:registerSimpleDataParagraph('html', function (text)
+    return '<div>' .. text .. '</div>'
+  end)
+  local processor = podium.PodiumProcessor.new(backend)
+  print(processor:process(inputString)) -- process returns output string
+
 
 =head2 License
 
