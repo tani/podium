@@ -95,7 +95,15 @@ end
 ---@param kind? PodiumElementKind (default: "text") The kind of the element
 ---@param extraProps? table (default: {}) The extra properties of the element
 ---@return PodiumElement
-function PodiumElement.new(source, startIndex, endIndex, indentLevel, kind, value, extraProps)
+function PodiumElement.new(
+  source,
+  startIndex,
+  endIndex,
+  indentLevel,
+  kind,
+  value,
+  extraProps
+)
   startIndex = startIndex or 1
   endIndex = endIndex or #source
   indentLevel = indentLevel or 0
@@ -198,7 +206,11 @@ local function trimBlank(element)
       break
     end
   end
-  return element:clone({ startIndex = i, endIndex = j, value = element.source:sub(i, j) })
+  return element:clone({
+    startIndex = i,
+    endIndex = j,
+    value = element.source:sub(i, j),
+  })
 end
 
 ---@param element PodiumElement
@@ -323,7 +335,10 @@ local function findFormattingCode(element)
           if element.source:sub(i, i) == "<" then
             if element.source:sub(i - 1, i - 1):match("[A-Z]") then
               _, _, _, i = findFormattingCode(
-                element:clone({ startIndex = i - 1, endIndex = element.endIndex })
+                element:clone({
+                  startIndex = i - 1,
+                  endIndex = element.endIndex,
+                })
               )
             end
           end
@@ -378,7 +393,7 @@ local function splitParagraphs(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = "list",
-            value = table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -395,7 +410,7 @@ local function splitParagraphs(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = "para",
-            value = table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -411,7 +426,7 @@ local function splitParagraphs(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = "verbatim",
-            value = table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -447,7 +462,7 @@ local function splitParagraphs(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = block_name,
-            value =  table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -464,7 +479,7 @@ local function splitParagraphs(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = cmd_name,
-            value =  table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -504,7 +519,7 @@ local function splitParagraphs(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = "list",
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -516,7 +531,7 @@ local function splitParagraphs(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = "para",
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -528,7 +543,7 @@ local function splitParagraphs(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = "verbatim",
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -540,7 +555,7 @@ local function splitParagraphs(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = block_name,
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -552,7 +567,7 @@ local function splitParagraphs(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = cmd_name,
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -579,7 +594,7 @@ local function splitItem(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = "itempart",
-            value = table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -602,7 +617,7 @@ local function splitItem(element)
             startIndex = startIndex,
             endIndex = endIndex,
             kind = "list",
-            value = table.concat(lines)
+            value = table.concat(lines),
           })
         )
         startIndex = endIndex + 1
@@ -620,7 +635,7 @@ local function splitItem(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = "list",
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -632,7 +647,7 @@ local function splitItem(element)
           startIndex = startIndex,
           endIndex = endIndex,
           kind = "itempart",
-          value = table.concat(lines)
+          value = table.concat(lines),
         })
       )
       startIndex = endIndex + 1
@@ -693,7 +708,7 @@ local function splitItems(element)
               startIndex = startIndex,
               endIndex = endIndex,
               kind = "item",
-              value = table.concat(lines)
+              value = table.concat(lines),
             })
           )
           startIndex = endIndex + 1
@@ -725,7 +740,7 @@ local function splitItems(element)
         startIndex = startIndex,
         endIndex = endIndex,
         kind = "item",
-        value = table.concat(lines)
+        value = table.concat(lines),
       })
     )
     startIndex = endIndex + 1
@@ -741,7 +756,8 @@ local function splitTokens(element)
   local tokens = {}
   local i = element.startIndex
   while i <= element.endIndex do
-    local ok, b_cmd, _, _, e_cmd = pcall(findFormattingCode, element:clone({ startIndex = i }))
+    local ok, b_cmd, _, _, e_cmd =
+      pcall(findFormattingCode, element:clone({ startIndex = i }))
     if ok then
       table.insert(
         tokens,
@@ -749,7 +765,7 @@ local function splitTokens(element)
           startIndex = i,
           endIndex = b_cmd - 1,
           kind = "text",
-          value = element.source:sub(i, b_cmd - 1)
+          value = element.source:sub(i, b_cmd - 1),
         })
       )
       table.insert(
@@ -758,7 +774,7 @@ local function splitTokens(element)
           startIndex = b_cmd,
           endIndex = e_cmd,
           kind = element.source:sub(b_cmd, b_cmd),
-          value = element.source:sub(b_cmd, e_cmd)
+          value = element.source:sub(b_cmd, e_cmd),
         })
       )
       i = e_cmd + 1
@@ -768,7 +784,7 @@ local function splitTokens(element)
         element:clone({
           startIndex = i,
           kind = "text",
-          value = element.source:sub(i, element.endIndex)
+          value = element.source:sub(i, element.endIndex),
         })
       )
       i = element.endIndex + 1
@@ -852,14 +868,14 @@ local function splitList(element)
     element:clone({
       kind = "text",
       value = guessNewline(element.source),
-      indentLevel = (element.indentLevel + indentLevel)
+      indentLevel = (element.indentLevel + indentLevel),
     }),
     element:clone({
       endIndex = over_endIndex,
       kind = "over",
       value = table.concat(over_lines),
       indentLevel = (element.indentLevel + indentLevel),
-      extraProps = { listStyle = list_type }
+      extraProps = { listStyle = list_type },
     }),
     element:clone({
       startIndex = items_startIndex,
@@ -874,11 +890,11 @@ local function splitList(element)
       kind = "back",
       value = table.concat(back_lines),
       indentLevel = (element.indentLevel + indentLevel),
-      extraProps = { listStyle = list_type }
+      extraProps = { listStyle = list_type },
     }),
     element:clone({
       kind = "text",
-      value = guessNewline(element.source)
+      value = guessNewline(element.source),
     }),
   }
 end
@@ -915,10 +931,7 @@ function PodiumProcessor.process(self, source)
         )
       end
     else
-      elements = append(
-        slice(elements, 1, i - 1),
-        slice(elements, i + 1)
-      )
+      elements = append(slice(elements, 1, i - 1), slice(elements, i + 1))
     end
     if element.kind == "cut" then
       shouldProcess = false
@@ -947,7 +960,7 @@ function PodiumProcessor.new(backend)
   return setmetatable({
     backend = backend,
   }, {
-    __index = PodiumProcessor
+    __index = PodiumProcessor,
   })
 end
 
@@ -970,7 +983,7 @@ function PodiumBackend.registerSimpleFormattingCode(self, name, fun)
     local _, b_arg, e_arg, _ = findFormattingCode(element)
     local arg = element.source:sub(b_arg, e_arg)
     return {
-      element:clone({ kind = "text", value = fun(arg) })
+      element:clone({ kind = "text", value = fun(arg) }),
     }
   end
   return self
@@ -982,16 +995,14 @@ end
 ---@return PodiumBackend
 function PodiumBackend.registerSimpleCommand(self, name, fun)
   self.rules[name] = function(element)
-    local arg = element.source
-      :sub(element.startIndex, element.endIndex)
-      :gsub("^=%S+", "")
+    local arg =
+      element.source:sub(element.startIndex, element.endIndex):gsub("^=%S+", "")
     return {
-      element:clone({ kind = "text", value = fun(arg) })
+      element:clone({ kind = "text", value = fun(arg) }),
     }
   end
   return self
 end
-
 
 ---@param element PodiumElement
 ---@return integer, integer, integer, integer
@@ -1000,47 +1011,46 @@ end
 ---The index of the last character of content
 ---The index of the last character of =end command
 local function findDataParagraph(element)
-    local startIndex = element.startIndex
-    local endIndex = element.startIndex
-    local lines = {}
-    local blockState = 0
-    for _, line in ipairs(splitLines(element)) do
-      if blockState == 0 then
-        startIndex = startIndex + #line
-        endIndex = endIndex + #line
-        if line:match("^=begin") then
-          blockState = 1
-        end
-      elseif blockState == 1 then
-        startIndex = startIndex + #line
-        endIndex = endIndex + #line
-        if line:match("^%s*$") then
-          startIndex = startIndex - #line - 1
-          table.insert(lines, line)
-          blockState = 2
-        end
-      elseif blockState == 2 then
-        endIndex = endIndex + #line
-        if line:match("^%s*$") then
-          table.insert(lines, line)
-          blockState = 3
-        else
-          table.insert(lines, line)
-        end
-      elseif blockState == 3 then
-        endIndex = endIndex + #line
-        if line:match("^=end") then
-          endIndex = endIndex - #line
-          blockState = 4
-        else
-          table.insert(lines, line)
-          blockState = 3
-        end
+  local startIndex = element.startIndex
+  local endIndex = element.startIndex
+  local lines = {}
+  local blockState = 0
+  for _, line in ipairs(splitLines(element)) do
+    if blockState == 0 then
+      startIndex = startIndex + #line
+      endIndex = endIndex + #line
+      if line:match("^=begin") then
+        blockState = 1
+      end
+    elseif blockState == 1 then
+      startIndex = startIndex + #line
+      endIndex = endIndex + #line
+      if line:match("^%s*$") then
+        startIndex = startIndex - #line - 1
+        table.insert(lines, line)
+        blockState = 2
+      end
+    elseif blockState == 2 then
+      endIndex = endIndex + #line
+      if line:match("^%s*$") then
+        table.insert(lines, line)
+        blockState = 3
+      else
+        table.insert(lines, line)
+      end
+    elseif blockState == 3 then
+      endIndex = endIndex + #line
+      if line:match("^=end") then
+        endIndex = endIndex - #line
+        blockState = 4
+      else
+        table.insert(lines, line)
+        blockState = 3
       end
     end
-    return element.startIndex, startIndex, endIndex, element.endIndex
+  end
+  return element.startIndex, startIndex, endIndex, element.endIndex
 end
-
 
 ---@param self PodiumBackend
 ---@param name string
@@ -1051,12 +1061,11 @@ function PodiumBackend.registerSimpleDataParagraph(self, name, fun)
     local startIndex, endIndex = findDataParagraph(element)
     local arg = element.source:sub(startIndex, endIndex)
     return {
-      element:clone({ kind = "text", value = fun(arg) })
+      element:clone({ kind = "text", value = fun(arg) }),
     }
   end
   return self
 end
-
 
 ---@param self PodiumBackend
 ---@param name string
@@ -1067,12 +1076,11 @@ function PodiumBackend.registerSimple(self, name, fun)
     local startIndex, endIndex = findDataParagraph(element)
     local arg = element.source:sub(startIndex, endIndex)
     return {
-      element:clone({ kind = "text", value = fun(arg) })
+      element:clone({ kind = "text", value = fun(arg) }),
     }
   end
   return self
 end
-
 
 ---@param rules table<string, PodiumBackendElement>
 ---@return PodiumBackend
@@ -1085,9 +1093,9 @@ function PodiumBackend.new(rules)
     end,
   })
   return setmetatable({
-    rules = rules
+    rules = rules,
   }, {
-    __index = PodiumBackend
+    __index = PodiumBackend,
   })
 end
 
@@ -1101,70 +1109,78 @@ local html = PodiumBackend.new({
   head1 = function(element)
     local nl = guessNewline(element.source)
     local newElement = element:clone({
-      startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex),
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
     })
     return append(
       { element:clone({ value = "<h1>", kind = "text" }) },
       splitTokens(trimBlank(element)),
-      { element:clone({ value = "</h1>" .. nl, kind = "text"  }) }
+      { element:clone({ value = "</h1>" .. nl, kind = "text" }) }
     )
   end,
   head2 = function(element)
     local nl = guessNewline(element.source)
     local newElement = element:clone({
-      startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex),
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
     })
     return append(
-      { element:clone({ value = "<h2>", kind = "text"  }) },
+      { element:clone({ value = "<h2>", kind = "text" }) },
       splitTokens(trimBlank(element)),
-      { element:clone({ value = "</h2>" .. nl, kind = "text"  }) }
+      { element:clone({ value = "</h2>" .. nl, kind = "text" }) }
     )
   end,
   head3 = function(element)
     local nl = guessNewline(element.source)
     local newElement = element:clone({
-      startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex),
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
     })
     return append(
-      { element:clone({ value = "<h3>", kind = "text"  }) },
+      { element:clone({ value = "<h3>", kind = "text" }) },
       splitTokens(trimBlank(element)),
-      { element:clone({ value = "</h3>" .. nl, kind = "text"  }) }
+      { element:clone({ value = "</h3>" .. nl, kind = "text" }) }
     )
   end,
   head4 = function(element)
     local nl = guessNewline(element.source)
     local newElement = element:clone({
-      startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex),
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
     })
     return append(
-      { element:clone({ value = "<h4>", kind = "text"  }) },
+      { element:clone({ value = "<h4>", kind = "text" }) },
       splitTokens(trimBlank(element)),
-      { element:clone({ value = "</h4>" .. nl, kind = "text"  }) }
+      { element:clone({ value = "</h4>" .. nl, kind = "text" }) }
     )
   end,
   para = function(element)
     local nl = guessNewline(element.source)
     element = trimBlank(element)
     return append(
-      { element:clone({ value = "<p>", kind = "text"  }) },
+      { element:clone({ value = "<p>", kind = "text" }) },
       splitTokens(element),
-      { element:clone({ value = "</p>" .. nl, kind = "text"  }) }
+      { element:clone({ value = "</p>" .. nl, kind = "text" }) }
     )
   end,
   over = function(element)
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
-      return { element:clone({ value = "<ol>" .. nl, kind = "text"  }) }
+      return { element:clone({ value = "<ol>" .. nl, kind = "text" }) }
     else
-      return { element:clone({ value = "<ul>" .. nl, kind = "text"  }) }
+      return { element:clone({ value = "<ul>" .. nl, kind = "text" }) }
     end
   end,
   back = function(element)
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
-      return { element:clone({ value = "</ol>" .. nl, kind = "text"  }) }
+      return { element:clone({ value = "</ol>" .. nl, kind = "text" }) }
     else
-      return { element:clone({ value = "</ul>" .. nl, kind = "text"  }) }
+      return { element:clone({ value = "</ul>" .. nl, kind = "text" }) }
     end
   end,
   cut = function(element)
@@ -1176,16 +1192,25 @@ local html = PodiumBackend.new({
   verbatim = function(element)
     local nl = guessNewline(element.source)
     return {
-      element:clone({ value = "<pre><code>", kind = "text"  }),
+      element:clone({ value = "<pre><code>", kind = "text" }),
       element:clone({ kind = "text" }),
-      PodiumElement.new(element.source, element.endIndex, element.endIndex, element.indentLevel, "backspace"),
-      element:clone({ value = "</code></pre>" .. nl, kind = "text"  }),
+      PodiumElement.new(
+        element.source,
+        element.endIndex,
+        element.endIndex,
+        element.indentLevel,
+        "backspace"
+      ),
+      element:clone({ value = "</code></pre>" .. nl, kind = "text" }),
     }
   end,
   html = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
     return {
-      element:clone({ value = element.source:sub(startIndex, endIndex), kind = "text"  }),
+      element:clone({
+        value = element.source:sub(startIndex, endIndex),
+        kind = "text",
+      }),
     }
   end,
   item = function(element)
@@ -1195,16 +1220,20 @@ local html = PodiumBackend.new({
       :find("^=item%s*[*0-9]*%.?.", element.startIndex)
     return append(
       { element:clone({ kind = "text", value = "<li>" }) },
-      splitItem(trimBlank(element:clone({ startIndex = startIndex })) ),
+      splitItem(trimBlank(element:clone({ startIndex = startIndex }))),
       { element:clone({ kind = "text", value = "</li>" .. nl }) }
     )
   end,
   ["for"] = function(element)
     local nl = guessNewline(element.source)
-    local startIndex = element.source:sub(1, element.endIndex):find("=for%s+%S+%s")
+    local startIndex =
+      element.source:sub(1, element.endIndex):find("=for%s+%S+%s")
     return {
       element:clone({ kind = "text", value = "<pre><code>" .. nl }),
-      element:clone({ kind = "text", value = element.source:sub(startIndex, element.endIndex) }),
+      element:clone({
+        kind = "text",
+        value = element.source:sub(startIndex, element.endIndex),
+      }),
       element:clone({ kind = "backspace" }),
       element:clone({ kind = "text", value = "</code></pre>" .. nl }),
     }
@@ -1220,67 +1249,77 @@ local html = PodiumBackend.new({
   end,
   I = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "<em>", kind = "text"  }) },
+      { element:clone({ value = "<em>", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "</em>", kind = "text"  }) }
+      { element:clone({ value = "</em>", kind = "text" }) }
     )
   end,
   B = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "<strong>", kind = "text"  }) },
+      { element:clone({ value = "<strong>", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "</strong>", kind = "text"  }) }
+      { element:clone({ value = "</strong>", kind = "text" }) }
     )
   end,
   C = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "<code>", kind = "text"  }) },
+      { element:clone({ value = "<code>", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "</code>", kind = "text"  }) }
+      { element:clone({ value = "</code>", kind = "text" }) }
     )
   end,
   L = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
-    local b, e = newElement.source:sub(1, newElement.endIndex):find("[^|]*|", newElement.startIndex)
+    local b, e = newElement.source
+      :sub(1, newElement.endIndex)
+      :find("[^|]*|", newElement.startIndex)
     if b then
       return append(
-        { element:clone({ value = "<a href=\"", kind = "text"  }) },
+        { element:clone({ value = '<a href="', kind = "text" }) },
         splitTokens(newElement:clone({ startIndex = e + 1 })),
-        { element:clone({ value = "\">", kind = "text"  }) },
+        { element:clone({ value = '">', kind = "text" }) },
         splitTokens(newElement:clone({ startIndex = b, endIndex = e - 1 })),
-        { element:clone({ value = "</a>", kind = "text"  }) }
+        { element:clone({ value = "</a>", kind = "text" }) }
       )
     else
       return append(
-        { element:clone({ value = "<a href=\"", kind = "text"  }) },
+        { element:clone({ value = '<a href="', kind = "text" }) },
         splitTokens(newElement),
-        { element:clone({ value = "\">", kind = "text"  }) },
+        { element:clone({ value = '">', kind = "text" }) },
         splitTokens(newElement),
-        { element:clone({ value = "</a>", kind = "text"  }) }
+        { element:clone({ value = "</a>", kind = "text" }) }
       )
     end
   end,
   E = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
-    return { element:clone({ value = "&" .. newElement.value .. ";", kind = "text" }) }
+    return {
+      element:clone({ value = "&" .. newElement.value .. ";", kind = "text" }),
+    }
   end,
   X = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "<a href=\">", kind = "text"  }) },
+      { element:clone({ value = '<a href=">', kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "</a>", kind = "text"  }) }
+      { element:clone({ value = "</a>", kind = "text" }) }
     )
   end,
   Z = function(element)
@@ -1297,45 +1336,61 @@ local markdown = PodiumBackend.new({
   end,
   head1 = function(element)
     local nl = guessNewline(element.source)
-    local newElement = element:clone({ startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex) })
+    local newElement = element:clone({
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
+    })
     return append(
-      { element:clone({ kind = "text", value = "# " })},
+      { element:clone({ kind = "text", value = "# " }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = nl .. nl })}
+      { element:clone({ kind = "text", value = nl .. nl }) }
     )
   end,
   head2 = function(element)
     local nl = guessNewline(element.source)
-    local newElement = element:clone({ startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex) })
+    local newElement = element:clone({
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
+    })
     return append(
-      { element:clone({ kind = "text", value = "## " })},
+      { element:clone({ kind = "text", value = "## " }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = nl .. nl })}
+      { element:clone({ kind = "text", value = nl .. nl }) }
     )
   end,
   head3 = function(element)
     local nl = guessNewline(element.source)
-    local newElement = element:clone({ startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex) })
+    local newElement = element:clone({
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
+    })
     return append(
-      { element:clone({ kind = "text", value = "### " })},
+      { element:clone({ kind = "text", value = "### " }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = nl .. nl })}
+      { element:clone({ kind = "text", value = nl .. nl }) }
     )
   end,
   head4 = function(element)
     local nl = guessNewline(element.source)
-    local newElement = element:clone({ startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex) })
+    local newElement = element:clone({
+      startIndex = element.source
+        :sub(1, element.endIndex)
+        :find("%s", element.startIndex),
+    })
     return append(
-      { element:clone({ kind = "text", value = "#### " })},
+      { element:clone({ kind = "text", value = "#### " }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = nl .. nl })}
+      { element:clone({ kind = "text", value = nl .. nl }) }
     )
   end,
   para = function(element)
     local nl = guessNewline(element.source)
     return append(
       splitTokens(trimBlank(element)),
-      { element:clone({ kind = "text", value = nl .. nl })}
+      { element:clone({ kind = "text", value = nl .. nl }) }
     )
   end,
   over = function(element)
@@ -1361,7 +1416,9 @@ local markdown = PodiumBackend.new({
   end,
   html = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return { element:clone({ value = element.source:sub(startIndex. endIndex) }) }
+    return {
+      element:clone({ value = element.source:sub(startIndex.endIndex) }),
+    }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1376,17 +1433,22 @@ local markdown = PodiumBackend.new({
       :find("^=item%s*[*0-9]*%.?.", element.startIndex)
     local newElement = element:clone({ startIndex = startIndex })
     return append(
-      { element:clone({ kind = "text", value = bullet .. " " })},
+      { element:clone({ kind = "text", value = bullet .. " " }) },
       splitItem(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = nl })}
+      { element:clone({ kind = "text", value = nl }) }
     )
   end,
   ["for"] = function(element)
     local nl = guessNewline(element.source)
-    local startIndex = element.source:sub(1, element.endIndex):find("=for%s+%S+%s", element.startIndex)
+    local startIndex = element.source
+      :sub(1, element.endIndex)
+      :find("=for%s+%S+%s", element.startIndex)
     return {
       element:clone({ kind = "text", value = "```" .. nl }),
-      element:clone({ kind = "text", value = element.source:sub(startIndex, element.endIndex) }),
+      element:clone({
+        kind = "text",
+        value = element.source:sub(startIndex, element.endIndex),
+      }),
       element:clone({ kind = "backspace" }),
       element:clone({ kind = "text", value = "```" .. nl }),
     }
@@ -1402,68 +1464,80 @@ local markdown = PodiumBackend.new({
   end,
   I = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "*", kind = "text"  }) },
+      { element:clone({ value = "*", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "*", kind = "text"  }) }
+      { element:clone({ value = "*", kind = "text" }) }
     )
   end,
   B = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "**", kind = "text"  }) },
+      { element:clone({ value = "**", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "**", kind = "text"  }) }
+      { element:clone({ value = "**", kind = "text" }) }
     )
   end,
   C = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "`", kind = "text"  }) },
+      { element:clone({ value = "`", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "`", kind = "text"  }) }
+      { element:clone({ value = "`", kind = "text" }) }
     )
   end,
   L = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
-    local b, e = newElement.source:sub(1, newElement.endIndex):find("[^|]*|", newElement.startIndex)
+    local b, e = newElement.source
+      :sub(1, newElement.endIndex)
+      :find("[^|]*|", newElement.startIndex)
     if b then
       return append(
-        { element:clone({ value = "[", kind = "text"  }) },
+        { element:clone({ value = "[", kind = "text" }) },
         splitTokens(newElement:clone({ startIndex = b, endIndex = e - 1 })),
-        { element:clone({ value = "](", kind = "text"  }) },
+        { element:clone({ value = "](", kind = "text" }) },
         splitTokens(newElement:clone({ startIndex = e + 1 })),
-        { element:clone({ value = ")", kind = "text"  }) }
+        { element:clone({ value = ")", kind = "text" }) }
       )
     else
       return append(
-        { element:clone({ value = "[", kind = "text"  }) },
+        { element:clone({ value = "[", kind = "text" }) },
         splitTokens(newElement),
-        { element:clone({ value = "](", kind = "text"  }) },
+        { element:clone({ value = "](", kind = "text" }) },
         splitTokens(newElement),
-        { element:clone({ value = ")", kind = "text"  }) }
+        { element:clone({ value = ")", kind = "text" }) }
       )
     end
   end,
   E = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
     if newElement.value == "lt" then
-      return { element:clone({ value = "<", kind = "text"  }) }
+      return { element:clone({ value = "<", kind = "text" }) }
     elseif newElement.value == "gt" then
-      return { element:clone({ value = ">", kind = "text"  }) }
+      return { element:clone({ value = ">", kind = "text" }) }
     elseif newElement.value == "verbar" then
-      return { element:clone({ value = "|", kind = "text"  }) }
+      return { element:clone({ value = "|", kind = "text" }) }
     elseif newElement.value == "sol" then
-      return { element:clone({ value = "/", kind = "text"  }) }
+      return { element:clone({ value = "/", kind = "text" }) }
     else
-      return { element:clone({ value = "&" .. newElement.value .. ";", kind = "text"  }) }
+      return {
+        element:clone({
+          value = "&" .. newElement.value .. ";",
+          kind = "text",
+        }),
+      }
     end
   end,
   Z = function(element)
@@ -1474,7 +1548,8 @@ local markdown = PodiumBackend.new({
 ---@type PodiumBackendElement
 local function vimdoc_head(element)
   local nl = guessNewline(element.source)
-  local startIndex = element.source:sub(1, element.endIndex):find("%s", element.startIndex)
+  local startIndex =
+    element.source:sub(1, element.endIndex):find("%s", element.startIndex)
   local newElement = element:clone({ startIndex = startIndex })
   local tokens = splitTokens(trimBlank(newElement))
   local tags = {}
@@ -1489,12 +1564,21 @@ local function vimdoc_head(element)
   if #tags > 0 then
     return append(
       tokens,
-      { element:clone({ kind = "text", value = "~" .. nl, string.rep(" ", padding) }) },
+      {
+        element:clone({
+          kind = "text",
+          value = "~" .. nl,
+          string.rep(" ", padding),
+        }),
+      },
       tags,
       { element:clone({ kind = "text", value = nl .. nl }) }
     )
   else
-    return append(tokens, { element:clone({ kind = "text", value = "~" .. nl .. nl }) })
+    return append(
+      tokens,
+      { element:clone({ kind = "text", value = "~" .. nl .. nl }) }
+    )
   end
 end
 
@@ -1505,16 +1589,31 @@ local vimdoc = PodiumBackend.new({
     local filename = frontmatter.name .. ".txt"
     local description = frontmatter.description
     local spaces = string.rep(" ", 78 - #filename - #description - #nl)
-    return { element:clone({ kind = "text", value = filename .. spaces .. description .. nl }) }
+    return {
+      element:clone({
+        kind = "text",
+        value = filename .. spaces .. description .. nl,
+      }),
+    }
   end,
   postamble = function(element)
     local nl = guessNewline(element.source)
-    return { element:clone({ kind = "text", value = nl .. "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl }) }
+    return {
+      element:clone({
+        kind = "text",
+        value = nl .. "vim:tw=78:ts=8:noet:ft=help:norl:" .. nl,
+      }),
+    }
   end,
   head1 = function(element)
     local nl = guessNewline(element.source)
     return append(
-      { element:clone({ kind = "tex", value  = string.rep("=", 78 - #nl) .. nl })},
+      {
+        element:clone({
+          kind = "tex",
+          value = string.rep("=", 78 - #nl) .. nl,
+        }),
+      },
       vimdoc_head(element)
     )
   end,
@@ -1524,7 +1623,10 @@ local vimdoc = PodiumBackend.new({
   para = function(element)
     local nl = guessNewline(element.source)
     local tokens = splitTokens(trimBlank(element))
-    return append(tokens, { element:clone({ kind = "text", value = nl .. nl }) })
+    return append(
+      tokens,
+      { element:clone({ kind = "text", value = nl .. nl }) }
+    )
   end,
   over = function(element)
     return {}
@@ -1570,13 +1672,18 @@ local vimdoc = PodiumBackend.new({
     )
   end,
   ["for"] = function(element)
-    local startIndex = element.source:sub(1, element.endIndex):find("=for%s+%S+%s")
-    _, element.startIndex =
-      element.source:sub(1, element.endIndex):find("=for%s+%S+%s", element.startIndex)
+    local startIndex =
+      element.source:sub(1, element.endIndex):find("=for%s+%S+%s")
+    _, element.startIndex = element.source
+      :sub(1, element.endIndex)
+      :find("=for%s+%S+%s", element.startIndex)
     local nl = guessNewline(element.source)
     return {
       element:clone({ kind = "text", value = ">" .. nl }),
-      element:clone({ kind = "text", value = element.source:sub(startIndex, element.startIndex) }),
+      element:clone({
+        kind = "text",
+        value = element.source:sub(startIndex, element.startIndex),
+      }),
       element:clone({ kind = "backspace" }),
       element:clone({ kind = "text", value = "<" .. nl .. nl }),
     }
@@ -1592,36 +1699,42 @@ local vimdoc = PodiumBackend.new({
   end,
   B = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ kind = "text", value = "{"})},
+      { element:clone({ kind = "text", value = "{" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = "}"}) }
+      { element:clone({ kind = "text", value = "}" }) }
     )
   end,
   C = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ kind = "text", value = "`"})},
+      { element:clone({ kind = "text", value = "`" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = "`"}) }
+      { element:clone({ kind = "text", value = "`" }) }
     )
   end,
   O = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ kind = "text", value = "'"})},
+      { element:clone({ kind = "text", value = "'" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = "'"}) }
+      { element:clone({ kind = "text", value = "'" }) }
     )
   end,
   L = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
-    local b, e = newElement.source:sub(1, newElement.endIndex):find("[^|]*|", newElement.startIndex)
+    local b, e = newElement.source
+      :sub(1, newElement.endIndex)
+      :find("[^|]*|", newElement.startIndex)
     if b then
       return append(
         splitTokens(element:clone({ startIndex = b, endIndex = e - 1 })),
@@ -1639,16 +1752,18 @@ local vimdoc = PodiumBackend.new({
   end,
   X = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ kind = "text", value = "*"}) },
+      { element:clone({ kind = "text", value = "*" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ kind = "text", value = "*"}) }
+      { element:clone({ kind = "text", value = "*" }) }
     )
   end,
   E = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
     if newElement.value == "lt" then
       return { element:clone({ kind = "text", value = "<" }) }
@@ -1659,7 +1774,9 @@ local vimdoc = PodiumBackend.new({
     elseif newElement.value == "sol" then
       return { element:clone({ kind = "text", value = "/" }) }
     else
-      return { element:clone({ kind = "text", value = "&" .. newElement.value .. ";" }) }
+      return {
+        element:clone({ kind = "text", value = "&" .. newElement.value .. ";" }),
+      }
     end
   end,
   Z = function(element)
@@ -1710,20 +1827,29 @@ local latex = PodiumBackend.new({
   para = function(element)
     local nl = guessNewline(element.source)
     local newElement = trimBlank(element)
-    return append(splitTokens(newElement), { newElement:clone({ kind = "text", value = nl }) })
+    return append(
+      splitTokens(newElement),
+      { newElement:clone({ kind = "text", value = nl }) }
+    )
   end,
   over = function(element)
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
-      return { element:clone({ kind = "text", value = "\\begin{enumerate}" .. nl }) }
+      return {
+        element:clone({ kind = "text", value = "\\begin{enumerate}" .. nl }),
+      }
     else
-      return { element:clone({ kind = "text", value = "\\begin{itemize}" .. nl }) }
+      return {
+        element:clone({ kind = "text", value = "\\begin{itemize}" .. nl }),
+      }
     end
   end,
   back = function(element)
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
-      return { element:clone({ kind = "text", value = "\\end{enumerate}" .. nl }) }
+      return {
+        element:clone({ kind = "text", value = "\\end{enumerate}" .. nl }),
+      }
     else
       return { element:clone({ kind = "text", value = "\\end{itemize}" .. nl }) }
     end
@@ -1745,7 +1871,12 @@ local latex = PodiumBackend.new({
   end,
   latex = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    return { element:clone({ kind = "text", value = element.source:sub(startIndex, endIndex) }) }
+    return {
+      element:clone({
+        kind = "text",
+        value = element.source:sub(startIndex, endIndex),
+      }),
+    }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1761,13 +1892,17 @@ local latex = PodiumBackend.new({
   end,
   ["for"] = function(element)
     local nl = guessNewline(element.source)
-    local startIndex =
-      element.source:sub(1, element.endIndex):find("=for%s+%S+%s", element.startIndex)
+    local startIndex = element.source
+      :sub(1, element.endIndex)
+      :find("=for%s+%S+%s", element.startIndex)
     return {
       element:clone({ kind = "text", value = "\\begin{verbatim}" .. nl }),
-      element:clone({ kind = "text", value = element.source:sub(startIndex, element.endIndex) }),
+      element:clone({
+        kind = "text",
+        value = element.source:sub(startIndex, element.endIndex),
+      }),
       element:clone({ kind = "backspace" }),
-      element:clone({ kind = "text", value = "\\end{verbatim}" .. nl })
+      element:clone({ kind = "text", value = "\\end{verbatim}" .. nl }),
     }
   end,
   list = function(element)
@@ -1781,44 +1916,49 @@ local latex = PodiumBackend.new({
   end,
   I = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "\\textit{", kind = "text"  }) },
+      { element:clone({ value = "\\textit{", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "}", kind = "text"  }) }
+      { element:clone({ value = "}", kind = "text" }) }
     )
   end,
   B = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "\\textbf{", kind = "text"  }) },
+      { element:clone({ value = "\\textbf{", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "}", kind = "text"  }) }
+      { element:clone({ value = "}", kind = "text" }) }
     )
   end,
   C = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      { element:clone({ value = "\\verb|", kind = "text"  }) },
+      { element:clone({ value = "\\verb|", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      { element:clone({ value = "|", kind = "text"  }) }
+      { element:clone({ value = "|", kind = "text" }) }
     )
   end,
   L = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
-    local b, e =
-      newElement.source:sub(1, newElement.endIndex):find("[^|]*|", newElement.startIndex)
+    local b, e = newElement.source
+      :sub(1, newElement.endIndex)
+      :find("[^|]*|", newElement.startIndex)
     if b then
       return append(
-        { element:clone({ value = "\\href{", kind = "text"  }) },
+        { element:clone({ value = "\\href{", kind = "text" }) },
         splitTokens(newElement:clone({ startIndex = e + 1 })),
-        { element:clone({ value = "}{", kind = "text"  }) },
+        { element:clone({ value = "}{", kind = "text" }) },
         splitTokens(newElement:clone({ startIndex = b, endIndex = e - 1 })),
-        { element:clone({ value = "}", kind = "text"  }) }
+        { element:clone({ value = "}", kind = "text" }) }
       )
     elseif element.value:match("^https?://") then
       return append(
@@ -1836,7 +1976,8 @@ local latex = PodiumBackend.new({
   end,
   E = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     newElement = trimBlank(newElement)
     if newElement.value == "lt" then
       return { element:clone({ value = "<", kind = "text" }) }
@@ -1850,17 +1991,18 @@ local latex = PodiumBackend.new({
       return {
         { element:clone({ value = "\\texttt{", kind = "text" }) },
         splitTokens(newElement),
-        { element:clone({ value = "}", kind = "text" }) }
+        { element:clone({ value = "}", kind = "text" }) },
       }
     end
   end,
   X = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
-    local newElement = element:clone({ startIndex = startIndex, endIndex = endIndex })
+    local newElement =
+      element:clone({ startIndex = startIndex, endIndex = endIndex })
     return append(
-      {element:clone({ value = "\\label{", kind = "text" })},
+      { element:clone({ value = "\\label{", kind = "text" }) },
       splitTokens(trimBlank(newElement)),
-      {element:clone({ value = "}", kind = "text" })}
+      { element:clone({ value = "}", kind = "text" }) }
     )
   end,
   Z = function(element)
@@ -1887,27 +2029,27 @@ M.vimdoc = vimdoc
 
 if arg then
   if #arg > 0 and arg[0]:match("podium") then
-   local input
-   if arg[2] then
-     local ifile = io.open(arg[2], "r")
-     if not ifile then
-       error("cannot open file: " .. arg[2])
-     end
-     input = ifile:read("*a")
-   else
-     input = io.read("*a")
-   end
-   local processor = PodiumProcessor.new(M[arg[1]])
-   local output = processor:process(input)
-   if arg[3] then
-     local ofile = io.open(arg[3], "w")
-     if not ofile then
-       error("cannot open file: " .. arg[3])
-     end
-     ofile:write(output)
-   else
-     io.write(output)
-   end
+    local input
+    if arg[2] then
+      local ifile = io.open(arg[2], "r")
+      if not ifile then
+        error("cannot open file: " .. arg[2])
+      end
+      input = ifile:read("*a")
+    else
+      input = io.read("*a")
+    end
+    local processor = PodiumProcessor.new(M[arg[1]])
+    local output = processor:process(input)
+    if arg[3] then
+      local ofile = io.open(arg[3], "w")
+      if not ofile then
+        error("cannot open file: " .. arg[3])
+      end
+      ofile:write(output)
+    else
+      io.write(output)
+    end
   end
 end
 

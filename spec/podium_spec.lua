@@ -29,7 +29,8 @@ describe("POD Parser", function()
   describe("findFormattingCode", function()
     it("finds formatting code", function()
       local source = "C<bar>"
-      local b_cmd, b_arg, e_arg, e_cmd = pod.findFormattingCode(pod.PodiumElement.new(source))
+      local b_cmd, b_arg, e_arg, e_cmd =
+        pod.findFormattingCode(pod.PodiumElement.new(source))
       assert.are.same({ 1, 3, 5, 6 }, { b_cmd, b_arg, e_arg, e_cmd })
     end)
   end)
@@ -42,7 +43,8 @@ describe("POD Parser", function()
 
       =end html
       ]])
-      local b_cmd, b_arg, e_arg, e_cmd = pod.findDataParagraph(pod.PodiumElement.new(source))
+      local b_cmd, b_arg, e_arg, e_cmd =
+        pod.findDataParagraph(pod.PodiumElement.new(source))
       assert.are.same({ 1, 12, 45, 54 }, { b_cmd, b_arg, e_arg, e_cmd })
     end)
   end)
@@ -472,7 +474,7 @@ describe("POD Parser", function()
       assert.are.same(expected, actual)
     end)
     it("splits paragraphs by nested over-back block", function()
-      local source= unindent([[
+      local source = unindent([[
         foo
 
         =over
