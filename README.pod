@@ -89,6 +89,28 @@ To  customize the output, see below.
 
 =head2 Customization
 
+B<Example:>
+
+  -- example.lua
+  podium = dofile('podium.lua')
+
+  -- customize the output
+  podium.html:registerSimpleFormattingCode('B', function (text)
+    return '<b style="font-weight: bold">' .. text .. '</b>'
+  end)
+
+  -- create a new processor
+  local processor = podium.PodiumProcessor.new(podium.html)
+
+  -- read file as string
+  local inputString = io.open('path/to/file.pod'):read('*a')
+
+  -- process the string
+  local outputString = processor:process(inputString)
+
+  -- write the string to file
+  io.open('path/to/file.html', 'w'):write(outputString)
+
 Podium consists of the three components:
 
 =over
