@@ -105,7 +105,7 @@ Please be relaxed, you don't need to know the details of the tree structure.
 You just need to arrange the simple string-to-string conversion.
 
 You can customize the output by tweaking C<PodiumBackend> instance,
-which has three methods for simple customization:
+which has four methods for simple customization:
 
 =head3 C<registerSimpleFormattingCode(self, name, fun)>
 
@@ -149,6 +149,27 @@ C<name> is the name of the data paragraph, e.g., html or markdown.
   backend:registerSimpleDataParagraph('html', function (text)
     return '<div>' .. text .. '</div>'
   end)
+  local processor = podium.PodiumProcessor.new(backend)
+  print(processor:process(inputString)) -- process returns output string
+
+=head3 C<registerSimple(self, name, fun)>
+
+This method is used to register another simple conversion, e.g., preamble, and
+postambles. C<name> is the name of the conversion, e.g., preamble, and
+postambles. C<fun> is a function that takes a string and returns a string.
+The function takes the entire input string as an argument for preamble and
+postambles.
+
+  local podium = require('podium')
+  local inputString = "..."
+  local backend = podium.html -- or markdown, latex, vimdoc
+  backend
+    :registerSimple('preamble', function (text)
+      return '<html><body>'
+    end)
+    :registerSimple('postamble', function (text)
+      return '</body></html>'
+    end)
   local processor = podium.PodiumProcessor.new(backend)
   print(processor:process(inputString)) -- process returns output string
 

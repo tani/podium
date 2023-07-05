@@ -1109,17 +1109,42 @@ local function registerSimpleDataParagraph(self, name, fun)
   return self
 end
 
+
+---@param self PodiumBackend
+---@param name string
+---@param fun fun(content: string): string
+---@return PodiumBackend
+local function registerSimple(self, name, fun)
+  self.rules[name] = function(element)
+    local startIndex, endIndex = findDataParagraph(element)
+    local arg = element.source:sub(startIndex, endIndex)
+    return {
+      PodiumElement.new(
+        element.source,
+        element.startIndex,
+        element.endIndex,
+        element.indentLevel,
+        "text",
+        fun(arg)
+      )
+    }
+  end
+  return self
+end
+
 ---@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
 ---@class PodiumBackend
 ---@field rules table<string, PodiumBackendElement>
 ---@field registerSimpleFormattingCode fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimpleCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimpleDataParagraph fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field registerSimple fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 local PodiumBackend = {
   rules = {},
   registerSimpleFormattingCode = registerSimpleFormattingCode,
   registerSimpleCommand = registerSimpleCommand,
   registerSimpleDataParagraph = registerSimpleDataParagraph,
+  registerSimple = registerSimple,
 }
 
 ---@param rules table<string, PodiumBackendElement>
