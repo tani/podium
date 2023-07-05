@@ -1091,14 +1091,6 @@ function PodiumBackend.new(rules)
   })
 end
 
----@param value string
----@param indentLevel number
----@param source string
----@return PodiumElement
-local function parsed_token(value, indentLevel, source)
-  return PodiumElement.new(source, -1, -1, indentLevel, "text", value)
-end
-
 local html = PodiumBackend.new({
   preamble = function(element)
     return {}
