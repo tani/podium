@@ -107,7 +107,7 @@ You just need to arrange the simple string-to-string conversion.
 You can customize the output by tweaking C<PodiumBackend> instance,
 which has three methods for simple customization:
 
-=head3 C<registerSimpleFormmatingCode(self, name, fun)>
+=head3 C<registerSimpleFormattingCode(self, name, fun)>
 
 This method registers a simple formatting code, e.g., C<BE<lt>...E<gt>>.
 C<name> is the name of the formatting code: the single capital letter.
@@ -116,7 +116,7 @@ C<fun> is a function that takes a string and returns a string.
   local podium = require('podium')
   local inputString = "..."
   local backend = podium.html -- or markdown, latex, vimdoc
-  backend:registerSimpleFormmatingCode('B', function (text)
+  backend:registerSimpleFormattingCode('B', function (text)
     return '<b style="font-weight: bold">' .. text .. '</b>'
   end)
   local processor = podium.PodiumProcessor.new(backend)
