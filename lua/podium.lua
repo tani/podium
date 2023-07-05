@@ -40,7 +40,7 @@ local _ -- dummy
 ---| 'over'
 ---| 'item'
 ---| 'back'
----| 'verb'
+---| 'verbatim'
 ---| 'for'
 ---| 'head1'
 ---| 'head2'
@@ -399,7 +399,7 @@ local function splitParagraphs(element)
             startIndex,
             endIndex,
             element.indentLevel,
-            "verb",
+            "verbatim",
             table.concat(lines)
           )
         )
@@ -537,7 +537,7 @@ local function splitParagraphs(element)
           startIndex,
           endIndex,
           element.indentLevel,
-          "verb",
+          "verbatim",
           table.concat(lines)
         )
       )
@@ -1237,7 +1237,7 @@ local html = PodiumBackend.new({
   pod = function(element)
     return {}
   end,
-  verb = function(element)
+  verbatim = function(element)
     local nl = guessNewline(element.source)
     return {
       parsed_token("<pre><code>" .. nl, element.indentLevel, element.source),
@@ -1426,7 +1426,7 @@ local markdown = PodiumBackend.new({
   pod = function(element)
     return {}
   end,
-  verb = function(element)
+  verbatim = function(element)
     local nl = guessNewline(element.source)
     return {
       parsed_token("```" .. nl, element.indentLevel, element.source),
@@ -1628,7 +1628,7 @@ local vimdoc = PodiumBackend.new({
   pod = function(element)
     return {}
   end,
-  verb = function(element)
+  verbatim = function(element)
     local nl = guessNewline(element.source)
     return {
       parsed_token(">" .. nl, element.indentLevel, element.source),
@@ -1822,7 +1822,7 @@ local latex = PodiumBackend.new({
   pod = function(element)
     return {}
   end,
-  verb = function(element)
+  verbatim = function(element)
     local nl = guessNewline(element.source)
     return {
       parsed_token("\\begin{verbatim}" .. nl, element.indentLevel, element.source),
