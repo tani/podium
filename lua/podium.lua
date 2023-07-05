@@ -260,25 +260,21 @@ local function indexToRowCol(source, startIndex)
   return row, col
 end
 
----@param source string
----@param startIndex? integer
----@param endIndex? integer
+---@param element PodiumElement
 ---@return integer,integer,integer,integer
-local function findInline(source, startIndex, endIndex)
-  startIndex = startIndex or 1
-  endIndex = endIndex or #source
-  for b_cmd = startIndex, endIndex do
-    if source:sub(b_cmd, b_cmd):match("[A-Z]") then
-      if source:sub(b_cmd + 1, b_cmd + 1) == "<" then
+local function findFormattingCode(element)
+  for b_cmd = element.startIndex, element.endIndex do
+    if element.source:sub(b_cmd, b_cmd):match("[A-Z]") then
+      if element.source:sub(b_cmd + 1, b_cmd + 1) == "<" then
         local count = 1
         local space = ""
         local i = b_cmd + 2
         local b_arg, e_arg = nil, nil
-        while i <= endIndex do
-          if source:sub(i, i) == "<" then
+        while i <= element.endIndex do
+          if element.source:sub(i, i) == "<" then
             count = count + 1
             i = i + 1
-          elseif source:sub(i, i):match("%s") then
+          elseif element.source:sub(i, i):match("%s") then
             b_arg = i + 1
             space = "%s"
             break
@@ -288,8 +284,8 @@ local function findInline(source, startIndex, endIndex)
             break
           end
         end
-        if i > endIndex then
-          local row, col = indexToRowCol(source, b_cmd)
+        if i > element.endIndex then
+          local row, col = indexToRowCol(element.source, b_cmd)
           error(
             "ERROR:"
               .. row
@@ -302,20 +298,22 @@ local function findInline(source, startIndex, endIndex)
           )
         end
         local angles = space .. string.rep(">", count)
-        while i <= endIndex do
-          if source:sub(i, i + #angles - 1):match(angles) then
+        while i <= element.endIndex do
+          if element.source:sub(i, i + #angles - 1):match(angles) then
             e_arg = i - 1
             break
           end
-          if source:sub(i, i) == "<" then
-            if source:sub(i - 1, i - 1):match("[A-Z]") then
-              _, _, _, i = findInline(source, i - 1)
+          if element.source:sub(i, i) == "<" then
+            if element.source:sub(i - 1, i - 1):match("[A-Z]") then
+              _, _, _, i = findFormattingCode(
+                PodiumElement.new(element.source, i - 1, element.endIndex)
+              )
             end
           end
           i = i + 1
         end
-        if i > endIndex then
-          local row, col = indexToRowCol(source, b_cmd)
+        if i > element.endIndex then
+          local row, col = indexToRowCol(element.source, b_cmd)
           error(
             "Missing closing brackets '"
               .. string.rep(">", count)
@@ -324,7 +322,7 @@ local function findInline(source, startIndex, endIndex)
               .. ":"
               .. col
               .. ": "
-              .. source:sub(b_cmd, b_cmd + count)
+              .. element.source:sub(b_cmd, b_cmd + count)
           )
         end
         return b_cmd, b_arg, e_arg, i + #angles - 1
@@ -770,7 +768,7 @@ local function splitTokens(element)
   local i = element.startIndex
   while i <= element.endIndex do
     local ok, b_cmd, _, _, e_cmd =
-      pcall(findInline, element.source, i, element.endIndex)
+      pcall(findFormattingCode, PodiumElement.new(element.source, i, element.endIndex))
     if ok then
       table.insert(
         tokens,
@@ -1006,9 +1004,9 @@ end
 ---@param self PodiumBackend
 ---@param name string
 ---@param fun fun(content: string): string
-local function registerSimpleInlineCommand(self, name, fun)
+local function registerSimpleFormattingCode(self, name, fun)
   self.rules[name] = function(element)
-    local _, b_arg, e_arg, _ = findInline(element.source, element.startIndex, element.endIndex)
+    local _, b_arg, e_arg, _ = findFormattingCode(element)
     local arg = element.source:sub(b_arg, e_arg)
     return {
       PodiumElement.new(
@@ -1028,7 +1026,7 @@ end
 ---@param name string
 ---@param fun fun(content: string): string
 ---@return PodiumBackend
-local function registerSimpleBlockCommand(self, name, fun)
+local function registerSimpleCommand(self, name, fun)
   self.rules[name] = function(element)
     local arg = element.source
       :sub(element.startIndex, element.endIndex)
@@ -1047,26 +1045,35 @@ local function registerSimpleBlockCommand(self, name, fun)
   return self
 end
 
----@param self PodiumBackend
----@param name string
----@param fun fun(content: string): string
----@return PodiumBackend
-local function registerSimpleFencedCommand(self, name, fun)
-  self.rules[name] = function(element)
-    ---@type string[]
+
+---@param element PodiumElement
+---@return integer, integer, integer, integer
+---The index of the first character of =begin command
+---The index of the first character of content
+---The index of the last character of content
+---The index of the last character of =end command
+local function findDataParagraph(element)
+    local startIndex = element.startIndex
+    local endIndex = element.startIndex
     local lines = {}
     local blockState = 0
     for _, line in ipairs(splitLines(element)) do
       if blockState == 0 then
+        startIndex = startIndex + #line
+        endIndex = endIndex + #line
         if line:match("^=begin") then
           blockState = 1
         end
       elseif blockState == 1 then
+        startIndex = startIndex + #line
+        endIndex = endIndex + #line
         if line:match("^%s*$") then
+          startIndex = startIndex - #line - 1
           table.insert(lines, line)
           blockState = 2
         end
       elseif blockState == 2 then
+        endIndex = endIndex + #line
         if line:match("^%s*$") then
           table.insert(lines, line)
           blockState = 3
@@ -1074,7 +1081,9 @@ local function registerSimpleFencedCommand(self, name, fun)
           table.insert(lines, line)
         end
       elseif blockState == 3 then
+        endIndex = endIndex + #line
         if line:match("^=end") then
+          endIndex = endIndex - #line
           blockState = 4
         else
           table.insert(lines, line)
@@ -1082,7 +1091,18 @@ local function registerSimpleFencedCommand(self, name, fun)
         end
       end
     end
-    local arg = table.concat(lines, guessNewline(element.source))
+    return element.startIndex, startIndex, endIndex, element.endIndex
+end
+
+
+---@param self PodiumBackend
+---@param name string
+---@param fun fun(content: string): string
+---@return PodiumBackend
+local function registerSimpleDataParagraph(self, name, fun)
+  self.rules[name] = function(element)
+    local startIndex, endIndex = findDataParagraph(element)
+    local arg = element.source:sub(startIndex, endIndex)
     return {
       PodiumElement.new(
         element.source,
@@ -1100,14 +1120,14 @@ end
 ---@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
 ---@class PodiumBackend
 ---@field rules table<string, PodiumBackendElement>
----@field registerSimpleInlineCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
----@field registerSimpleBlockCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
----@field registerSimpleFencedCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field registerSimpleFormattingCode fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field registerSimpleCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field registerSimpleDataParagraph fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 local PodiumBackend = {
   rules = {},
-  registerSimpleInlineCommand = registerSimpleInlineCommand,
-  registerSimpleBlockCommand = registerSimpleBlockCommand,
-  registerSimpleFencedCommand = registerSimpleFencedCommand,
+  registerSimpleFormattingCode = registerSimpleFormattingCode,
+  registerSimpleCommand = registerSimpleCommand,
+  registerSimpleDataParagraph = registerSimpleDataParagraph,
 }
 
 ---@param rules table<string, PodiumBackendElement>
@@ -1226,21 +1246,8 @@ local html = PodiumBackend.new({
     }
   end,
   html = function(element)
-    ---@type string[]
-    local lines = {}
-    local blockState = 0
-    for _, line in ipairs(splitLines(element)) do
-      if blockState == 0 then
-        if line:match("^=begin") then
-          blockState = 1
-        elseif line:match("^=end") then
-          blockState = 0
-        end
-      else
-        table.insert(lines, line)
-      end
-    end
-    return { parsed_token(table.concat(lines), element.indentLevel, element.source) }
+    local _, startIndex, endIndex, _ = findDataParagraph(element)
+    return { parsed_token(element.source:sub(startIndex, endIndex), element.indentLevel, element.source) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1275,7 +1282,7 @@ local html = PodiumBackend.new({
   end,
   I = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("<em>", element.indentLevel, element.source) },
@@ -1285,7 +1292,7 @@ local html = PodiumBackend.new({
   end,
   B = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("<strong>", element.indentLevel, element.source) },
@@ -1295,7 +1302,7 @@ local html = PodiumBackend.new({
   end,
   C = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("<code>", element.indentLevel, element.source) },
@@ -1305,7 +1312,7 @@ local html = PodiumBackend.new({
   end,
   L = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     local b, e =
       element.source:sub(1, element.endIndex):find("[^|]*|", element.startIndex)
@@ -1329,14 +1336,14 @@ local html = PodiumBackend.new({
   end,
   E = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     local arg = element.source:sub(element.startIndex, element.endIndex)
     return { parsed_token("&" .. arg .. ";", element.indentLevel, element.source) }
   end,
   X = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token('<a name="', element.indentLevel, element.source) },
@@ -1428,21 +1435,8 @@ local markdown = PodiumBackend.new({
     }
   end,
   html = function(element)
-    ---@type string[]
-    local lines = {}
-    local blockState = 0
-    for _, line in ipairs(splitLines(element)) do
-      if blockState == 0 then
-        if line:match("^=begin") then
-          blockState = 1
-        elseif line:match("^=end") then
-          blockState = 0
-        end
-      else
-        table.insert(lines, line)
-      end
-    end
-    return { parsed_token(table.concat(lines), element.indentLevel, element.source) }
+    local _, startIndex, endIndex, _ = findDataParagraph(element)
+    return { parsed_token(element.source:sub(startIndex. endIndex), element.indentLevel, element.source) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1483,7 +1477,7 @@ local markdown = PodiumBackend.new({
   end,
   I = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("*", element.indentLevel, element.source) },
@@ -1493,7 +1487,7 @@ local markdown = PodiumBackend.new({
   end,
   B = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("**", element.indentLevel, element.source) },
@@ -1503,7 +1497,7 @@ local markdown = PodiumBackend.new({
   end,
   C = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("`", element.indentLevel, element.source) },
@@ -1513,7 +1507,7 @@ local markdown = PodiumBackend.new({
   end,
   L = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     local b, e =
       element.source:sub(1, element.endIndex):find("[^|]*|", element.startIndex)
@@ -1537,7 +1531,7 @@ local markdown = PodiumBackend.new({
   end,
   E = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     if element.source:sub(element.startIndex, element.endIndex) == "lt" then
       return { parsed_token("<", element.indentLevel, element.source) }
@@ -1643,21 +1637,8 @@ local vimdoc = PodiumBackend.new({
     }
   end,
   vimdoc = function(element)
-    ---@type string[]
-    local lines = {}
-    local blockState = 0
-    for _, line in ipairs(splitLines(element)) do
-      if blockState == 0 then
-        if line:match("^=begin") then
-          blockState = 1
-        elseif line:match("^=end") then
-          blockState = 0
-        end
-      else
-        table.insert(lines, line)
-      end
-    end
-    return { parsed_token(table.concat(lines), element.indentLevel, element.source) }
+    local _, startIndex, endIndex, _ = findDataParagraph(element)
+    return { parsed_token(element.source:sub(startIndex, endIndex), element.indentLevel, element.source) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1698,7 +1679,7 @@ local vimdoc = PodiumBackend.new({
   end,
   C = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("`", element.indentLevel, element.source) },
@@ -1708,7 +1689,7 @@ local vimdoc = PodiumBackend.new({
   end,
   O = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("'", element.indentLevel, element.source) },
@@ -1718,7 +1699,7 @@ local vimdoc = PodiumBackend.new({
   end,
   L = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     local b, e =
       element.source:sub(1, element.endIndex):find("[^|]*|", element.startIndex)
@@ -1739,7 +1720,7 @@ local vimdoc = PodiumBackend.new({
   end,
   X = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("*", element.indentLevel, element.source) },
@@ -1749,7 +1730,7 @@ local vimdoc = PodiumBackend.new({
   end,
   E = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     if element.source:sub(element.startIndex, element.endIndex) == "lt" then
       return { parsed_token("<", element.indentLevel, element.source) }
@@ -1850,21 +1831,8 @@ local latex = PodiumBackend.new({
     }
   end,
   latex = function(element)
-    ---@type string[]
-    local lines = {}
-    local blockState = 0
-    for _, line in ipairs(splitLines(element)) do
-      if blockState == 0 then
-        if line:match("^=begin") then
-          blockState = 1
-        elseif line:match("^=end") then
-          blockState = 0
-        end
-      else
-        table.insert(lines, line)
-      end
-    end
-    return { parsed_token(table.concat(lines), element.indentLevel, element.source) }
+    local _, startIndex, endIndex, _ = findFormattingCode(element)
+    return { parsed_token(element.source:sub(startIndex, endIndex), element.indentLevel, element.source) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1899,7 +1867,7 @@ local latex = PodiumBackend.new({
   end,
   I = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("\\textit{", element.indentLevel, element.source) },
@@ -1909,7 +1877,7 @@ local latex = PodiumBackend.new({
   end,
   B = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("\\textbf{", element.indentLevel, element.source) },
@@ -1919,7 +1887,7 @@ local latex = PodiumBackend.new({
   end,
   C = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("\\verb|", element.indentLevel, element.source) },
@@ -1929,7 +1897,7 @@ local latex = PodiumBackend.new({
   end,
   L = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     local b, e =
       element.source:sub(1, element.endIndex):find("[^|]*|", element.startIndex)
@@ -1959,7 +1927,7 @@ local latex = PodiumBackend.new({
   end,
   E = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     if element.source:sub(element.startIndex, element.endIndex) == "lt" then
       return { parsed_token("<", element.indentLevel, element.source) }
@@ -1979,7 +1947,7 @@ local latex = PodiumBackend.new({
   end,
   X = function(element)
     _, element.startIndex, element.endIndex, _ =
-      findInline(element.source, element.startIndex, element.endIndex)
+      findFormattingCode(element)
     element = trimBlank(element)
     return append(
       { parsed_token("\\label{", element.indentLevel, element.source) },
@@ -1995,12 +1963,12 @@ local latex = PodiumBackend.new({
 M.PodiumElement = PodiumElement
 M.PodiumProcessor = PodiumProcessor
 M.PodiumBackend = PodiumBackend
-M.findInline = findInline
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
 M.splitItem = splitItem
 M.splitItems = splitItems
-M.findInline = findInline
+M.findFormattingCode = findFormattingCode
+M.findDataParagraph = findDataParagraph
 M.splitTokens = splitTokens
 M.splitList = splitList
 M.html = html

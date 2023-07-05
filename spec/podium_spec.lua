@@ -10,6 +10,26 @@ local function unindent(str)
 end
 
 describe("POD Parser", function()
+  describe("findFormattingCode", function()
+    it("finds formatting code", function()
+      local source = "C<bar>"
+      local b_cmd, b_arg, e_arg, e_cmd = pod.findFormattingCode(pod.PodiumElement.new(source))
+      assert.are.same({ 1, 3, 5, 6 }, { b_cmd, b_arg, e_arg, e_cmd })
+    end)
+  end)
+  describe("findDataParagraph", function()
+    it("finds data paragraph", function()
+      local source = unindent([[
+      =begin html
+
+      <p>This is html paragraph</p>
+
+      =end html
+      ]])
+      local b_cmd, b_arg, e_arg, e_cmd = pod.findDataParagraph(pod.PodiumElement.new(source))
+      assert.are.same({ 1, 12, 45, 54 }, { b_cmd, b_arg, e_arg, e_cmd })
+    end)
+  end)
   describe("splitList function", function()
     it("splits simple indent block with default indent", function()
       local source = unindent([[
