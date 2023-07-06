@@ -809,12 +809,6 @@ local function splitList(element)
   back_endIndex = back_endIndex - 1
   local indentLevel = tonumber(table.concat(over_lines):match("(%d+)") or "4")
   return {
-    element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-    element:clone({
-      kind = "text",
-      value = guessNewline(element.source),
-      indentLevel = (element.indentLevel + indentLevel),
-    }),
     element:clone({
       endIndex = over_endIndex,
       kind = "over",
@@ -830,18 +824,17 @@ local function splitList(element)
       indentLevel = (element.indentLevel + indentLevel),
     }),
     element:clone({
-      startIndex = back_startIndex,
-      endIndex = back_endIndex,
-      kind = "back",
-      value = table.concat(back_lines),
-      indentLevel = (element.indentLevel + indentLevel),
-      extraProps = { listStyle = list_type },
-    }),
-    element:clone({
       kind = "backspace",
       extraProps = {
         deleteCount = indentLevel,
       }
+    }),
+    element:clone({
+      startIndex = back_startIndex,
+      endIndex = back_endIndex,
+      kind = "back",
+      value = table.concat(back_lines),
+      extraProps = { listStyle = list_type },
     }),
   }
 end
@@ -1275,7 +1268,11 @@ local markdown = PodiumBackend.new({
     )
   end,
   over = function(element)
-    return {}
+    local nl = guessNewline(element.source)
+    return {
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "text", value = nl }),
+    }
   end,
   back = function(element)
     local nl = guessNewline(element.source)
@@ -1478,7 +1475,11 @@ local vimdoc = PodiumBackend.new({
     })
   end,
   over = function(element)
-    return {}
+    local nl = guessNewline(element.source)
+    return {
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "text", value = nl }),
+    }
   end,
   back = function(element)
     local nl = guessNewline(element.source)

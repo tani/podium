@@ -17,6 +17,12 @@ describe("POD Parser", function()
       local expected = "foo"
       assert.are.same(expected, actual)
     end)
+    it("trims string with newline", function()
+      local source = "  foo \n "
+      local actual = pod.PodiumElement.new(source):trim().value
+      local expected = "foo"
+      assert.are.same(expected, actual)
+    end)
   end)
   describe("findFormattingCode", function()
     it("finds formatting code", function()
@@ -52,24 +58,6 @@ describe("POD Parser", function()
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "backspace",
-          value = source,
-          source = source,
-          indentLevel = 0,
-          extraProps = {},
-          startIndex = 1,
-          endIndex = 19,
-        },
-        {
-          kind = "text",
-          source = source,
-          startIndex = 1,
-          endIndex = 19,
-          indentLevel = 4,
-          extraProps = {},
-          value = "\n",
-        },
-        {
           kind = "over",
           value = unindent([[
           =over
@@ -94,6 +82,15 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
+          kind = "backspace",
+          source = source,
+          startIndex = 1,
+          endIndex = 19,
+          indentLevel = 0,
+          extraProps = { deleteCount = 4  },
+          value = source,
+        },
+        {
           kind = "back",
           value = unindent([[
           =back
@@ -101,17 +98,8 @@ describe("POD Parser", function()
           source = source,
           startIndex = 14,
           endIndex = 19,
-          indentLevel = 4,
-          extraProps = { listStyle = "unordered" },
-        },
-        {
-          kind = "text",
-          source = source,
-          startIndex = 1,
-          endIndex = 19,
           indentLevel = 0,
-          extraProps = {},
-          value = "\n",
+          extraProps = { listStyle = "unordered" },
         },
       }
       assert.are.same(expected, actual)
@@ -126,24 +114,6 @@ describe("POD Parser", function()
       ]])
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
-        {
-          kind = "backspace",
-          value = source,
-          source = source,
-          indentLevel = 0,
-          startIndex = 1,
-          extraProps = {},
-          endIndex = 21,
-        },
-        {
-          kind = "text",
-          source = source,
-          startIndex = 1,
-          endIndex = 21,
-          indentLevel = 8,
-          extraProps = {},
-          value = "\n",
-        },
         {
           kind = "over",
           value = unindent([[
@@ -169,6 +139,15 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
+          kind = "backspace",
+          source = source,
+          startIndex = 1,
+          endIndex = 21,
+          indentLevel = 0,
+          extraProps = { deleteCount = 8  },
+          value = source,
+        },
+        {
           kind = "back",
           value = unindent([[
           =back
@@ -176,17 +155,8 @@ describe("POD Parser", function()
           source = source,
           startIndex = 16,
           endIndex = 21,
-          indentLevel = 8,
-          extraProps = { listStyle = "unordered" },
-        },
-        {
-          kind = "text",
-          source = source,
-          startIndex = 1,
-          endIndex = 21,
           indentLevel = 0,
-          extraProps = {},
-          value = "\n",
+          extraProps = { listStyle = "unordered" },
         },
       }
       assert.are.same(expected, actual)
@@ -207,24 +177,6 @@ describe("POD Parser", function()
       ]])
       local actual = pod.splitList(pod.PodiumElement.new(source))
       local expected = {
-        {
-          kind = "backspace",
-          value = source,
-          source = source,
-          indentLevel = 0,
-          startIndex = 1,
-          extraProps = {},
-          endIndex = 49,
-        },
-        {
-          kind = "text",
-          source = source,
-          startIndex = 1,
-          endIndex = 49,
-          indentLevel = 8,
-          extraProps = {},
-          value = "\n",
-        },
         {
           kind = "over",
           value = unindent([[
@@ -256,6 +208,15 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
+          kind = "backspace",
+          source = source,
+          startIndex = 1,
+          endIndex = 49,
+          indentLevel = 0,
+          extraProps = { deleteCount = 8  },
+          value = source,
+        },
+        {
           kind = "back",
           value = unindent([[
           =back
@@ -263,18 +224,9 @@ describe("POD Parser", function()
           source = source,
           startIndex = 44,
           endIndex = 49,
-          indentLevel = 8,
-          extraProps = { listStyle = "unordered" },
-        },
-        {
-          kind = "text",
-          source = source,
-          startIndex = 1,
-          endIndex = 49,
           indentLevel = 0,
-          extraProps = {},
-          value = "\n",
-        },
+          extraProps = { listStyle = "unordered" },
+        }
       }
       assert.are.same(expected, actual)
     end)
