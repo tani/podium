@@ -1089,8 +1089,8 @@ local html = PodiumBackend.new({
   para = function(element)
     local nl = guessNewline(element.source)
     return append(
-      { element:clone({ value = "<p>", kind = "text" }):trim() },
-      splitTokens(element),
+      { element:clone({ value = "<p>", kind = "text" }) },
+      splitTokens(element:trim()),
       { element:clone({ value = "</p>" .. nl, kind = "text" }) }
     )
   end,
@@ -1146,7 +1146,7 @@ local html = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = "<pre><code>" .. nl }),
       element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace" }):trim(),
+      element:clone({ kind = "backspace" }),
       element:clone({ kind = "text", value = "</code></pre>" .. nl }),
     }
   end,
