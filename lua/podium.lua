@@ -1442,8 +1442,8 @@ local vimdoc = PodiumBackend.new({
   preamble = function(element)
     local nl = guessNewline(element.source)
     local frontmatter = parseFrontMatter(element.source)
-    local filename = "*" .. frontmatter.name .. ".txt*"
-    local description = frontmatter.description
+    local filename = "*" .. frontmatter.name or "untitled" .. ".txt*"
+    local description = frontmatter.description or "No description"
     local spaces = string.rep(" ", 78 - #filename - #description - #nl)
     return {
       element:clone({
