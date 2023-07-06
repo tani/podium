@@ -827,7 +827,7 @@ local function splitList(element)
       kind = "backspace",
       extraProps = {
         deleteCount = indentLevel,
-      }
+      },
     }),
     element:clone({
       startIndex = back_startIndex,
@@ -1123,9 +1123,7 @@ local html = PodiumBackend.new({
   end,
   html = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return {
-      element:sub(startIndex, endIndex):clone({ kind = "text" }),
-    }
+    return { element:sub(startIndex, endIndex):clone({ kind = "text" }) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1142,7 +1140,7 @@ local html = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = "<pre><code>" .. nl }),
       element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "</code></pre>" .. nl }),
     }
   end,
@@ -1270,7 +1268,7 @@ local markdown = PodiumBackend.new({
   over = function(element)
     local nl = guessNewline(element.source)
     return {
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = nl }),
     }
   end,
@@ -1291,7 +1289,7 @@ local markdown = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = "```" .. nl }),
       element:clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "```" .. nl .. nl }),
     }
   end,
@@ -1320,7 +1318,7 @@ local markdown = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = "```" .. nl }),
       element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "```" .. nl }),
     }
   end,
@@ -1477,7 +1475,7 @@ local vimdoc = PodiumBackend.new({
   over = function(element)
     local nl = guessNewline(element.source)
     return {
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = nl }),
     }
   end,
@@ -1498,7 +1496,7 @@ local vimdoc = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = ">" .. nl }),
       element:clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "<" .. nl .. nl }),
     }
   end,
@@ -1525,7 +1523,7 @@ local vimdoc = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = ">" .. nl }),
       element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "<" .. nl .. nl }),
     }
   end,
@@ -1682,7 +1680,7 @@ local latex = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = "\\begin{verbatim}" .. nl }),
       element:clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "\\end{verbatim}" .. nl }),
     }
   end,
@@ -1707,7 +1705,7 @@ local latex = PodiumBackend.new({
     return {
       element:clone({ kind = "text", value = "\\begin{verbatim}" .. nl }),
       element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 }  }),
+      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ kind = "text", value = "\\end{verbatim}" .. nl }),
     }
   end,

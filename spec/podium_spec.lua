@@ -87,7 +87,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 19,
           indentLevel = 0,
-          extraProps = { deleteCount = 4  },
+          extraProps = { deleteCount = 4 },
           value = source,
         },
         {
@@ -144,7 +144,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 21,
           indentLevel = 0,
-          extraProps = { deleteCount = 8  },
+          extraProps = { deleteCount = 8 },
           value = source,
         },
         {
@@ -213,7 +213,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 49,
           indentLevel = 0,
-          extraProps = { deleteCount = 8  },
+          extraProps = { deleteCount = 8 },
           value = source,
         },
         {
@@ -226,7 +226,7 @@ describe("POD Parser", function()
           endIndex = 49,
           indentLevel = 0,
           extraProps = { listStyle = "unordered" },
-        }
+        },
       }
       assert.are.same(expected, actual)
     end)
