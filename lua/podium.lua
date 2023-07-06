@@ -1467,9 +1467,9 @@ local vimdoc = PodiumBackend.new({
   head4 = vimdoc_head,
   para = function(element)
     local nl = guessNewline(element.source)
-    return append(splitTokens(element:trim())({
+    return append(splitTokens(element:trim()), {
       element:clone({ kind = "text", value = nl .. nl }),
-    }))
+    })
   end,
   over = function(element)
     return {}
