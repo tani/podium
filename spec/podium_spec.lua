@@ -10,19 +10,11 @@ local function unindent(str)
 end
 
 describe("POD Parser", function()
-  describe("trimBlank", function()
-    it("trims blank lines", function()
-      local source = " hoge "
-      local actual = pod.trimBlank(pod.PodiumElement.new(source))
-      local expected = {
-        kind = "text",
-        value = "hoge",
-        source = source,
-        startIndex = 2,
-        endIndex = 5,
-        indentLevel = 0,
-        extraProps = {},
-      }
+  describe(":trim", function()
+    it("trims string", function()
+      local source = "  foo  "
+      local actual = pod.PodiumElement.new(source):trim().value
+      local expected = "foo"
       assert.are.same(expected, actual)
     end)
   end)
