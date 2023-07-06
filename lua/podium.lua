@@ -1442,7 +1442,7 @@ local vimdoc = PodiumBackend.new({
   preamble = function(element)
     local nl = guessNewline(element.source)
     local frontmatter = parseFrontMatter(element.source)
-    local filename = frontmatter.name .. ".txt"
+    local filename = "*" .. frontmatter.name .. ".txt*"
     local description = frontmatter.description
     local spaces = string.rep(" ", 78 - #filename - #description - #nl)
     return {
