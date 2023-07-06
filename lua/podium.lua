@@ -216,15 +216,15 @@ local function splitLines(element)
   while i <= element.endIndex do
     local j = element:find("[\r\n]", i)
     if j == nil then
-      table.insert(lines, element.source:sub(i, element.endIndex))
+      table.insert(lines, element:sub(i).value)
       i = element.endIndex + 1
     else
-      if element.source:sub(j, j) == "\r" then
-        if element.source:sub(j + 1, j + 1) == "\n" then
+      if element:sub(j, j).value == "\r" then
+        if element:sub(j + 1, j + 1).value == "\n" then
           j = j + 1
         end
       end
-      table.insert(lines, element.source:sub(i, j))
+      table.insert(lines, element:sub(i, j).value)
       i = j + 1
     end
   end
@@ -836,7 +836,7 @@ local PodiumProcessor = {}
 ---@param source string
 ---@return string
 function PodiumProcessor.process(self, source)
-  local elements = splitParagraphs(PodiumElement.new(source, 1, #source, 0))
+  local elements = splitParagraphs(PodiumElement.new(source))
   local nl = guessNewline(source)
   local shouldProcess = false
   local i = 1
@@ -866,9 +866,9 @@ function PodiumProcessor.process(self, source)
     end
   end
   elements = append(
-    self.backend.rules["preamble"](PodiumElement.new(source, 1, #source, 0)),
+    self.backend.rules["preamble"](PodiumElement.new(source)),
     elements,
-    self.backend.rules["postamble"](PodiumElement.new(source, 1, #source, 0))
+    self.backend.rules["postamble"](PodiumElement.new(source))
   )
   local output = ""
   for _, element in ipairs(elements) do
@@ -948,9 +948,6 @@ local function findDataParagraph(element)
     if blockState == 0 then
       startIndex = startIndex + #line
       endIndex = endIndex + #line
-      if line:match("^=for") then
-        -- TODO
-      end
       if line:match("^=begin") then
         blockState = 1
       end
@@ -981,7 +978,7 @@ local function findDataParagraph(element)
       end
     end
   end
-  return element.startIndex, startIndex, endIndex, element.endIndex
+  return element.startIndex, startIndex, endIndex - 1, element.endIndex
 end
 
 ---@param self PodiumBackend
@@ -990,8 +987,8 @@ end
 ---@return PodiumBackend
 function PodiumBackend.registerSimpleDataParagraph(self, name, fun)
   self.rules[name] = function(element)
-    local startIndex, endIndex = findDataParagraph(element)
-    local arg = element.source:sub(startIndex, endIndex)
+    local _, startIndex, endIndex, _ = findDataParagraph(element)
+    local arg = element:sub(startIndex, endIndex).value
     return {
       element:clone({ kind = "text", value = fun(arg) }),
     }
@@ -1017,13 +1014,13 @@ end
 ---@param rules table<string, PodiumBackendElement>
 ---@return PodiumBackend
 function PodiumBackend.new(rules)
-  setmetatable(rules, {
-    __index = function(_table, _key)
-      return function(_element)
-        return {}
-      end
-    end,
-  })
+  --setmetatable(rules, {
+  --  __index = function(_table, _key)
+  --    return function(_element)
+  --      return {}
+  --    end
+  --  end,
+  --})
   return setmetatable({
     rules = rules,
   }, {
@@ -1208,8 +1205,9 @@ local html = PodiumBackend.new({
   X = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
     return append(
-      { element:clone({ value = '<a href=">', kind = "text" }) },
+      { element:clone({ value = '<a name=">', kind = "text" }) },
       splitTokens(element:sub(startIndex, endIndex):trim()),
+      { element:clone({ value = '">', kind = "text" }) },
       { element:clone({ value = "</a>", kind = "text" }) }
     )
   end,
@@ -1823,6 +1821,10 @@ local latex = PodiumBackend.new({
 M.PodiumElement = PodiumElement
 M.PodiumProcessor = PodiumProcessor
 M.PodiumBackend = PodiumBackend
+M.append = append
+M.slice = slice
+M.guessNewline = guessNewline
+M.indexToRowCol = indexToRowCol
 M.splitLines = splitLines
 M.splitParagraphs = splitParagraphs
 M.splitItem = splitItem

@@ -43,7 +43,7 @@ describe("POD Parser", function()
       ]])
       local b_cmd, b_arg, e_arg, e_cmd =
         pod.findDataParagraph(pod.PodiumElement.new(source))
-      assert.are.same({ 1, 12, 45, 54 }, { b_cmd, b_arg, e_arg, e_cmd })
+      assert.are.same({ 1, 12, 44, 54 }, { b_cmd, b_arg, e_arg, e_cmd })
     end)
   end)
   describe("splitList function", function()
@@ -323,7 +323,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = "bar\n",
           source = source,
           startIndex = 39,
@@ -339,7 +339,7 @@ describe("POD Parser", function()
       local actual = pod.splitParagraphs(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           foo
 
@@ -351,7 +351,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           bar
 
@@ -363,7 +363,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = "bazz",
           source = source,
           startIndex = 11,
@@ -390,7 +390,7 @@ describe("POD Parser", function()
       local actual = pod.splitParagraphs(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           foo
 
@@ -420,7 +420,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = "hoge",
           source = source,
           startIndex = 43,
@@ -453,7 +453,7 @@ describe("POD Parser", function()
       local actual = pod.splitParagraphs(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           foo
 
@@ -489,7 +489,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = "fuga",
           source = source,
           startIndex = 69,
@@ -514,7 +514,7 @@ describe("POD Parser", function()
       local actual = pod.splitParagraphs(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           foo
 
@@ -542,7 +542,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = "bar",
           source = source,
           startIndex = 42,
@@ -558,7 +558,7 @@ describe("POD Parser", function()
       local actual = pod.splitParagraphs(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           foo
           bar
@@ -587,7 +587,7 @@ describe("POD Parser", function()
       local actual = pod.splitParagraphs(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           foo
 
@@ -627,7 +627,7 @@ describe("POD Parser", function()
       local actual = pod.splitItems(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           lorem ipsum
           dolor sit amet]]),
@@ -653,7 +653,7 @@ describe("POD Parser", function()
       local actual = pod.splitItems(pod.PodiumElement.new(source))
       local expected = {
         {
-          kind = "para",
+          kind = "paragraph",
           value = unindent([[
           lorem ipsum
 
@@ -680,7 +680,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "para",
+          kind = "paragraph",
           value = "dolor sit amet",
           source = source,
           startIndex = 49,
