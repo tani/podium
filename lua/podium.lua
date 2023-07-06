@@ -51,7 +51,7 @@ local _ -- dummy
 ---| 'list'
 ---| 'items'
 ---| 'itempart'
----| 'para'
+---| 'paragraph'
 ---| 'text'
 ---| 'preamble'
 ---| 'postamble'
@@ -392,7 +392,7 @@ local function splitParagraphs(element)
         table.insert(
           paragraphs,
           element:sub(startIndex, endIndex):clone({
-            kind = "para",
+            kind = "paragraph",
           })
         )
         startIndex = endIndex + 1
@@ -498,7 +498,7 @@ local function splitParagraphs(element)
       table.insert(
         paragraphs,
         element:sub(startIndex, endIndex):clone({
-          kind = "para",
+          kind = "paragraph",
         })
       )
       startIndex = endIndex + 1
@@ -1070,7 +1070,7 @@ local html = PodiumBackend.new({
       { element:clone({ value = "</h4>" .. nl, kind = "text" }) }
     )
   end,
-  para = function(element)
+  paragraph = function(element)
     local nl = guessNewline(element.source)
     return append(
       { element:clone({ value = "<p>", kind = "text" }) },
@@ -1257,7 +1257,7 @@ local markdown = PodiumBackend.new({
       { element:clone({ kind = "text", value = nl .. nl }) }
     )
   end,
-  para = function(element)
+  paragraph = function(element)
     local nl = guessNewline(element.source)
     return append(
       splitTokens(element:trim()),
@@ -1473,7 +1473,7 @@ local vimdoc = PodiumBackend.new({
   head2 = vimdoc_head,
   head3 = vimdoc_head,
   head4 = vimdoc_head,
-  para = function(element)
+  paragraph = function(element)
     local nl = guessNewline(element.source)
     return append(splitTokens(element:trim()), {
       element:clone({ kind = "text", value = nl .. nl }),
@@ -1655,7 +1655,7 @@ local latex = PodiumBackend.new({
       { element:clone({ kind = "text", value = "}" .. nl }) }
     )
   end,
-  para = function(element)
+  paragraph = function(element)
     local nl = guessNewline(element.source)
     return append(
       splitTokens(element:trim()),
