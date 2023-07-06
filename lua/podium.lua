@@ -155,20 +155,6 @@ function PodiumElement.trim(self)
   return self:sub(startIndex, self.endIndex - #space)
 end
 
----@param t table
----@param indent? number  always 0
-local function debug(t, indent)
-  indent = indent or 0
-  for k, v in pairs(t) do
-    if type(v) == "table" then
-      print(string.rep(" ", indent) .. k .. ":")
-      debug(v, indent + 2)
-    else
-      print(string.rep(" ", indent) .. k .. ": " .. tostring(v))
-    end
-  end
-end
-
 ---@generic T
 ---@param t T[]
 ---@param i? integer
@@ -562,9 +548,7 @@ local function splitItem(element)
         local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           parts,
-          element:sub(startIndex, endIndex):clone({
-            kind = "itempart",
-          })
+          element:sub(startIndex, endIndex):trim():clone({ kind = "itempart" })
         )
         startIndex = endIndex + 1
         itemState = itemState + 2
@@ -582,9 +566,7 @@ local function splitItem(element)
         local endIndex = startIndex + #table.concat(lines) - 1
         table.insert(
           parts,
-          element:sub(startIndex, endIndex):clone({
-            kind = "list",
-          })
+          element:sub(startIndex, endIndex):trim():clone({ kind = "list" })
         )
         startIndex = endIndex + 1
         lines = {}
@@ -597,18 +579,14 @@ local function splitItem(element)
       local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         parts,
-        element:sub(startIndex, endIndex):clone({
-          kind = "list",
-        })
+        element:sub(startIndex, endIndex):trim():clone({ kind = "list" })
       )
       startIndex = endIndex + 1
     else
       local endIndex = startIndex + #table.concat(lines) - 1
       table.insert(
         parts,
-        element:sub(startIndex, endIndex):clone({
-          kind = "itempart",
-        })
+        element:sub(startIndex, endIndex):trim():clone({ kind = "itempart" })
       )
       startIndex = endIndex + 1
     end
@@ -814,7 +792,10 @@ local function splitList(element)
       kind = "over",
       value = table.concat(over_lines),
       indentLevel = (element.indentLevel + indentLevel),
-      extraProps = { listStyle = list_type },
+      extraProps = {
+        listStyle = list_type,
+        listDepth = (element.extraProps.listDepth or 0) + 1,
+      },
     }),
     element:clone({
       startIndex = items_startIndex,
@@ -822,11 +803,15 @@ local function splitList(element)
       kind = "items",
       value = table.concat(items_lines),
       indentLevel = (element.indentLevel + indentLevel),
+      extraProps = {
+        listDepth = (element.extraProps.listDepth or 0) + 1,
+      },
     }),
     element:clone({
       kind = "backspace",
       extraProps = {
         deleteCount = indentLevel,
+        listDepth = (element.extraProps.listDepth or 0) + 1,
       },
     }),
     element:clone({
@@ -834,7 +819,10 @@ local function splitList(element)
       endIndex = back_endIndex,
       kind = "back",
       value = table.concat(back_lines),
-      extraProps = { listStyle = list_type },
+      extraProps = {
+        listStyle = list_type,
+        listDepth = (element.extraProps.listDepth or 0) + 1,
+      },
     }),
   }
 end
@@ -1093,17 +1081,28 @@ local html = PodiumBackend.new({
   over = function(element)
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
-      return { element:clone({ value = "<ol>" .. nl, kind = "text" }) }
+      return {
+        element:clone({ value = "<ol>" .. nl, kind = "text" }),
+      }
     else
-      return { element:clone({ value = "<ul>" .. nl, kind = "text" }) }
+      return {
+        element:clone({ value = "<ul>" .. nl, kind = "text" }),
+      }
     end
   end,
   back = function(element)
+    local ld = element.extraProps.listDepth
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
-      return { element:clone({ value = "</ol>" .. nl, kind = "text" }) }
+      return {
+        element:clone({ value = "</ol>", kind = "text" }),
+        element:clone({ value = (ld == 1 and nl or ""), kind = "text" }),
+      }
     else
-      return { element:clone({ value = "</ul>" .. nl, kind = "text" }) }
+      return {
+        element:clone({ value = "</ul>", kind = "text" }),
+        element:clone({ value = (ld == 1 and nl or ""), kind = "text" }),
+      }
     end
   end,
   cut = function(element)
@@ -1267,16 +1266,24 @@ local markdown = PodiumBackend.new({
   end,
   over = function(element)
     local nl = guessNewline(element.source)
-    return {
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-      element:clone({ kind = "text", value = nl }),
-    }
+    if element.extraProps.listDepth == 1 then
+      return {
+        element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
+        element:clone({ kind = "text", value = nl }),
+      }
+    else
+      return {
+        element:clone({ kind = "text", value = nl }),
+      }
+    end
   end,
   back = function(element)
     local nl = guessNewline(element.source)
-    return {
-      element:clone({ kind = "text", value = nl }),
-    }
+    if element.extraProps.listDepth == 1 then
+      return { element:clone({ kind = "text", value = nl }) }
+    else
+      return {}
+    end
   end,
   cut = function(element)
     return {}
@@ -1474,16 +1481,24 @@ local vimdoc = PodiumBackend.new({
   end,
   over = function(element)
     local nl = guessNewline(element.source)
-    return {
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-      element:clone({ kind = "text", value = nl }),
-    }
+    if element.extraProps.listDepth == 1 then
+      return {
+        element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
+        element:clone({ kind = "text", value = nl }),
+      }
+    else
+      return {
+        element:clone({ kind = "text", value = nl }),
+      }
+    end
   end,
   back = function(element)
     local nl = guessNewline(element.source)
-    return {
-      element:clone({ kind = "text", value = nl }),
-    }
+    if element.extraProps.listDepth == 1 then
+      return { element:clone({ kind = "text", value = nl }) }
+    else
+      return {}
+    end
   end,
   cut = function(element)
     return {}
@@ -1660,13 +1675,18 @@ local latex = PodiumBackend.new({
     end
   end,
   back = function(element)
+    local ld = element.extraProps.listDepth
     local nl = guessNewline(element.source)
     if element.extraProps.listStyle == "ordered" then
       return {
-        element:clone({ kind = "text", value = "\\end{enumerate}" .. nl }),
+        element:clone({ kind = "text", value = "\\end{enumerate}" }),
+        element:clone({ kind = "text", value = ld == 1 and nl or "" }),
       }
     else
-      return { element:clone({ kind = "text", value = "\\end{itemize}" .. nl }) }
+      return {
+        element:clone({ kind = "text", value = "\\end{itemize}" }),
+        element:clone({ kind = "text", value = ld == 1 and nl or "" }),
+      }
     end
   end,
   cut = function(element)

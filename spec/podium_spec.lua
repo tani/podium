@@ -67,7 +67,10 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 7,
           indentLevel = 4,
-          extraProps = { listStyle = "unordered" },
+          extraProps = {
+            listStyle = "unordered",
+            listDepth = 1,
+          },
         },
         {
           kind = "items",
@@ -79,7 +82,9 @@ describe("POD Parser", function()
           startIndex = 8,
           endIndex = 13,
           indentLevel = 4,
-          extraProps = {},
+          extraProps = {
+            listDepth = 1,
+          },
         },
         {
           kind = "backspace",
@@ -87,7 +92,10 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 19,
           indentLevel = 0,
-          extraProps = { deleteCount = 4 },
+          extraProps = {
+            listDepth = 1,
+            deleteCount = 4,
+          },
           value = source,
         },
         {
@@ -99,7 +107,10 @@ describe("POD Parser", function()
           startIndex = 14,
           endIndex = 19,
           indentLevel = 0,
-          extraProps = { listStyle = "unordered" },
+          extraProps = {
+            listDepth = 1,
+            listStyle = "unordered",
+          },
         },
       }
       assert.are.same(expected, actual)
@@ -124,7 +135,10 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 9,
           indentLevel = 8,
-          extraProps = { listStyle = "unordered" },
+          extraProps = {
+            listDepth = 1,
+            listStyle = "unordered",
+          },
         },
         {
           kind = "items",
@@ -136,7 +150,7 @@ describe("POD Parser", function()
           startIndex = 10,
           endIndex = 15,
           indentLevel = 8,
-          extraProps = {},
+          extraProps = { listDepth = 1 },
         },
         {
           kind = "backspace",
@@ -144,7 +158,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 21,
           indentLevel = 0,
-          extraProps = { deleteCount = 8 },
+          extraProps = { listDepth = 1, deleteCount = 8 },
           value = source,
         },
         {
@@ -156,7 +170,7 @@ describe("POD Parser", function()
           startIndex = 16,
           endIndex = 21,
           indentLevel = 0,
-          extraProps = { listStyle = "unordered" },
+          extraProps = { listDepth = 1, listStyle = "unordered" },
         },
       }
       assert.are.same(expected, actual)
@@ -187,7 +201,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 9,
           indentLevel = 8,
-          extraProps = { listStyle = "unordered" },
+          extraProps = { listDepth = 1, listStyle = "unordered" },
         },
         {
           kind = "items",
@@ -205,7 +219,7 @@ describe("POD Parser", function()
           startIndex = 10,
           endIndex = 43,
           indentLevel = 8,
-          extraProps = {},
+          extraProps = { listDepth = 1 },
         },
         {
           kind = "backspace",
@@ -213,7 +227,7 @@ describe("POD Parser", function()
           startIndex = 1,
           endIndex = 49,
           indentLevel = 0,
-          extraProps = { deleteCount = 8 },
+          extraProps = { listDepth = 1, deleteCount = 8 },
           value = source,
         },
         {
@@ -225,7 +239,7 @@ describe("POD Parser", function()
           startIndex = 44,
           endIndex = 49,
           indentLevel = 0,
-          extraProps = { listStyle = "unordered" },
+          extraProps = { listDepth = 1, listStyle = "unordered" },
         },
       }
       assert.are.same(expected, actual)
@@ -800,11 +814,10 @@ describe("POD Parser", function()
           kind = "itempart",
           value = unindent([[
           =item foo
-          bar
-          ]]),
+          bar]]),
           source = source,
           startIndex = 1,
-          endIndex = 14,
+          endIndex = 13,
           indentLevel = 0,
           extraProps = {},
         },
@@ -813,12 +826,10 @@ describe("POD Parser", function()
           value = unindent([[
           =over
           =item
-          =back
-
-          ]]),
+          =back]]),
           source = source,
           startIndex = 15,
-          endIndex = 33,
+          endIndex = 31,
           indentLevel = 0,
           extraProps = {},
         },
