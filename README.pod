@@ -72,9 +72,8 @@ programming interface (API) to convert POD to HTML, Markdown, LaTeX, or Vimdoc.
 
   local podium = require('podium')
   local inputString = "..."
-  local outputFormat = podium.html -- or markdown, latex, vimdoc
-  local processor = podium.PodiumProcessor.new(outputFormat)
-  print(processor:process(inputString)) -- process returns output string
+  local backend = podium.html -- or markdown, latex, vimdoc
+  print(podium.process(backend, inputString)) -- process returns output string
 
 =over
 
@@ -99,14 +98,11 @@ B<Example:>
     return '<b style="font-weight: bold">' .. text .. '</b>'
   end)
 
-  -- create a new processor
-  local processor = podium.PodiumProcessor.new(podium.html)
-
   -- read file as string
   local inputString = io.open('path/to/file.pod'):read('*a')
 
   -- process the string
-  local outputString = processor:process(inputString)
+  local outputString = podium.process(podium.html, inputString)
 
   -- write the string to file
   io.open('path/to/file.html', 'w'):write(outputString)
@@ -115,7 +111,7 @@ Podium consists of the three components:
 
 =over
 
-=item * C<PodiumProcessor> parses POD documents into a tree structure.
+=item * C<process> converts a string into another string using a C<PodiumBackend> instance.
 
 =item * C<PodiumBackend> converts the tree structure into a string.
 
@@ -141,8 +137,7 @@ C<fun> is a function that takes a string and returns a string.
   backend:registerSimpleFormattingCode('B', function (text)
     return '<b style="font-weight: bold">' .. text .. '</b>'
   end)
-  local processor = podium.PodiumProcessor.new(backend)
-  print(processor:process(inputString)) -- process returns output string
+  print(podium.process(backend, inputString)) -- process returns output string
 
 =head3 C<registerSimpleCommand(self, name, fun)>
 
@@ -156,8 +151,7 @@ Please do not override C<=begin> and C<=end> commands.
   backend:registerSimpleCommand('head1', function (text)
     return '<h1 style="font-weight: bold">' .. text .. '</h1>'
   end)
-  local processor = podium.PodiumProcessor.new(backend)
-  print(processor:process(inputString)) -- process returns output string
+  print(podium.process(backend, inputString)) -- process returns output string
 
 =head3 C<registerSimpleDataParagraph(self, name, fun)>
 
@@ -171,8 +165,7 @@ C<name> is the name of the data paragraph, e.g., html or markdown.
   backend:registerSimpleDataParagraph('html', function (text)
     return '<div>' .. text .. '</div>'
   end)
-  local processor = podium.PodiumProcessor.new(backend)
-  print(processor:process(inputString)) -- process returns output string
+  print(podium.process(backend, inputString)) -- process returns output string
 
 =head3 C<registerSimple(self, name, fun)>
 
@@ -192,8 +185,26 @@ postambles.
     :registerSimple('postamble', function (text)
       return '</body></html>'
     end)
-  local processor = podium.PodiumProcessor.new(backend)
-  print(processor:process(inputString)) -- process returns output string
+  print(podium.process(html, inputString)) -- process returns output string
+
+=head2 JavaScript API
+
+Podium is written in Lua, but you can use it in JavaScript as well.
+
+  import {LuaFactory} from 'npm:wasmoon@latest';
+  const luaFactory = new LuaFactory();
+  const lua = await luaFactory.createEngine();
+  const code = Deno.readTextFileSync('./lua/podium.lua').replace("#!/usr/bin/env lua", "")
+  const pod = await lua.doString(code);
+
+  // Arguments: backend name, node name, modifier function
+  pod.PodiumBackend.registerSimpleDataParagraph("html", "red", (arg) => {
+    return `<span style="color: red">${red}<span>`
+  })
+
+  // Arguments: backend name, input string
+  // Returns: output string
+  pod.process("html", "...")
 
 =head2 License
 

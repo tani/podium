@@ -827,15 +827,11 @@ local function splitList(element)
   }
 end
 
----@class PodiumProcessor
----@field backend PodiumBackend
----@field process fun(self: PodiumProcessor, source:string): string
-local PodiumProcessor = {}
-
----@param self PodiumProcessor
+---@param backend PodiumBackend | string
 ---@param source string
 ---@return string
-function PodiumProcessor.process(self, source)
+local function process(backend, source)
+  backend = type(backend) == "string" and M[backend] or backend ---@cast backend PodiumBackend
   local elements = splitParagraphs(PodiumElement.new(source))
   local nl = guessNewline(source)
   local shouldProcess = false
@@ -852,9 +848,12 @@ function PodiumProcessor.process(self, source)
         if element.source == nil then
           error("element.source is nil")
         end
+        if type(element) ~= "table" then
+          error("element is not a table")
+        end
         elements = append(
           slice(elements, 1, i - 1),
-          self.backend.rules[element.kind](element),
+          backend.rules[element.kind](element),
           slice(elements, i + 1)
         )
       end
@@ -866,9 +865,9 @@ function PodiumProcessor.process(self, source)
     end
   end
   elements = append(
-    self.backend.rules["preamble"](PodiumElement.new(source)),
+    backend.rules["preamble"](PodiumElement.new(source)),
     elements,
-    self.backend.rules["postamble"](PodiumElement.new(source))
+    backend.rules["postamble"](PodiumElement.new(source))
   )
   local output = ""
   for _, element in ipairs(elements) do
@@ -881,16 +880,6 @@ function PodiumProcessor.process(self, source)
     end
   end
   return output
-end
-
----@param backend PodiumBackend
----@return PodiumProcessor
-function PodiumProcessor.new(backend)
-  return setmetatable({
-    backend = backend,
-  }, {
-    __index = PodiumProcessor,
-  })
 end
 
 ---@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
@@ -908,6 +897,7 @@ local PodiumBackend = {
 ---@param name string
 ---@param fun fun(content: string): string
 function PodiumBackend.registerSimpleFormattingCode(self, name, fun)
+  self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
   self.rules[name] = function(element)
     local _, b_arg, e_arg, _ = findFormattingCode(element)
     local arg = element.source:sub(b_arg, e_arg)
@@ -918,11 +908,12 @@ function PodiumBackend.registerSimpleFormattingCode(self, name, fun)
   return self
 end
 
----@param self PodiumBackend
+---@param self PodiumBackend | string
 ---@param name string
 ---@param fun fun(content: string): string
 ---@return PodiumBackend
 function PodiumBackend.registerSimpleCommand(self, name, fun)
+  self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
   self.rules[name] = function(element)
     local arg =
       element.source:sub(element.startIndex, element.endIndex):gsub("^=%S+", "")
@@ -986,6 +977,7 @@ end
 ---@param fun fun(content: string): string
 ---@return PodiumBackend
 function PodiumBackend.registerSimpleDataParagraph(self, name, fun)
+  self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
   self.rules[name] = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
     local arg = element:sub(startIndex, endIndex).value
@@ -1001,6 +993,7 @@ end
 ---@param fun fun(content: string): string
 ---@return PodiumBackend
 function PodiumBackend.registerSimple(self, name, fun)
+  self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
   self.rules[name] = function(element)
     local startIndex, endIndex = findDataParagraph(element)
     local arg = element.source:sub(startIndex, endIndex)
@@ -1014,18 +1007,19 @@ end
 ---@param rules table<string, PodiumBackendElement>
 ---@return PodiumBackend
 function PodiumBackend.new(rules)
-  --setmetatable(rules, {
-  --  __index = function(_table, _key)
-  --    return function(_element)
-  --      return {}
-  --    end
-  --  end,
-  --})
-  return setmetatable({
+  setmetatable(rules, {
+    __index = function(_table, _key)
+      return function(_element)
+        return {}
+      end
+    end,
+  })
+  local self = setmetatable({
     rules = rules,
   }, {
     __index = PodiumBackend,
   })
+  return self
 end
 
 local html = PodiumBackend.new({
@@ -1118,6 +1112,10 @@ local html = PodiumBackend.new({
     }
   end,
   html = function(element)
+    if type(element) ~= "table" then
+      print(type(element))
+      error("element is not a table")
+    end
     local _, startIndex, endIndex, _ = findDataParagraph(element)
     return { element:sub(startIndex, endIndex):clone({ kind = "text" }) }
   end,
@@ -1819,7 +1817,6 @@ local latex = PodiumBackend.new({
 })
 
 M.PodiumElement = PodiumElement
-M.PodiumProcessor = PodiumProcessor
 M.PodiumBackend = PodiumBackend
 M.append = append
 M.slice = slice
@@ -1837,6 +1834,7 @@ M.html = html
 M.markdown = markdown
 M.latex = latex
 M.vimdoc = vimdoc
+M.process = process
 
 if arg then
   if #arg > 0 and arg[0]:match("podium") then
@@ -1850,8 +1848,7 @@ if arg then
     else
       input = io.read("*a")
     end
-    local processor = PodiumProcessor.new(M[arg[1]])
-    local output = processor:process(input)
+    local output = process(M[arg[1]], input)
     if arg[3] then
       local ofile = io.open(arg[3], "w")
       if not ofile then
