@@ -526,7 +526,7 @@ describe("POD Parser", function()
           extraProps = {},
         },
         {
-          kind = "html",
+          kind = "data",
           value = unindent([[
           =begin html
 
@@ -539,7 +539,7 @@ describe("POD Parser", function()
           startIndex = 6,
           endIndex = 41,
           indentLevel = 0,
-          extraProps = {},
+          extraProps = { dataKind = "html" },
         },
         {
           kind = "paragraph",

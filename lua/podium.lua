@@ -438,7 +438,8 @@ local function splitParagraphs(element)
         table.insert(
           paragraphs,
           element:sub(startIndex, endIndex):clone({
-            kind = block_name,
+            kind = "data",
+            extraProps = { dataKind = block_name },
           })
         )
         startIndex = endIndex + 1
@@ -516,7 +517,8 @@ local function splitParagraphs(element)
       table.insert(
         paragraphs,
         element:sub(startIndex, endIndex):clone({
-          kind = block_name,
+          kind = 'data',
+          extraProps = { dataKind = block_name },
         })
       )
       startIndex = endIndex + 1
@@ -1111,13 +1113,12 @@ local html = PodiumBackend.new({
       element:clone({ value = "</code></pre>" .. nl, kind = "text" }),
     }
   end,
-  html = function(element)
-    if type(element) ~= "table" then
-      print(type(element))
-      error("element is not a table")
-    end
+  data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return { element:sub(startIndex, endIndex):clone({ kind = "text" }) }
+    return M.html.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+  end,
+  html = function(element)
+    return { element:clone({ kind = "text" }) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1130,13 +1131,8 @@ local html = PodiumBackend.new({
   end,
   ["for"] = function(element)
     local nl = guessNewline(element.source)
-    local _, startIndex = element:find("^=for%s+%S+%s")
-    return {
-      element:clone({ kind = "text", value = "<pre><code>" .. nl }),
-      element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-      element:clone({ kind = "text", value = "</code></pre>" .. nl }),
-    }
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return M.html.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1296,11 +1292,12 @@ local markdown = PodiumBackend.new({
       element:clone({ kind = "text", value = "```" .. nl .. nl }),
     }
   end,
-  html = function(element)
+  data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return {
-      element:sub(startIndex, endIndex):clone({ kind = "text" }),
-    }
+    return M.markdown.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+  end,
+  html = function(element)
+    return { element:clone({ kind = "text" }) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1317,13 +1314,8 @@ local markdown = PodiumBackend.new({
   end,
   ["for"] = function(element)
     local nl = guessNewline(element.source)
-    local _, startIndex = element:find("=for%s+%S+%s")
-    return {
-      element:clone({ kind = "text", value = "```" .. nl }),
-      element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-      element:clone({ kind = "text", value = "```" .. nl }),
-    }
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return M.markdown.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1511,9 +1503,12 @@ local vimdoc = PodiumBackend.new({
       element:clone({ kind = "text", value = "<" .. nl .. nl }),
     }
   end,
-  vimdoc = function(element)
+  data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return { element:sub(startIndex, endIndex) }
+    return M.vimdoc.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+  end,
+  vimdoc = function(element)
+    return { element:clone({ kind = "text" }) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1529,14 +1524,9 @@ local vimdoc = PodiumBackend.new({
     )
   end,
   ["for"] = function(element)
-    local _, startIndex = element:find("^=for%s+%S+%s")
     local nl = guessNewline(element.source)
-    return {
-      element:clone({ kind = "text", value = ">" .. nl }),
-      element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-      element:clone({ kind = "text", value = "<" .. nl .. nl }),
-    }
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return M.vimdoc.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1700,11 +1690,12 @@ local latex = PodiumBackend.new({
       element:clone({ kind = "text", value = "\\end{verbatim}" .. nl }),
     }
   end,
+  data = function(element)
+    local _, startIndex, endIndex, _ = findDataParagraph(element)
+    return M.latex.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+  end,
   latex = function(element)
-    local _, startIndex, endIndex, _ = findFormattingCode(element)
-    return {
-      element:sub(startIndex, endIndex):clone({ kind = "text" }),
-    }
+    return { element:clone({ kind = "text" }) }
   end,
   item = function(element)
     local nl = guessNewline(element.source)
@@ -1717,13 +1708,8 @@ local latex = PodiumBackend.new({
   end,
   ["for"] = function(element)
     local nl = guessNewline(element.source)
-    local _, startIndex = element:find("^=for%s+%S+%s")
-    return {
-      element:clone({ kind = "text", value = "\\begin{verbatim}" .. nl }),
-      element:sub(startIndex):trim():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
-      element:clone({ kind = "text", value = "\\end{verbatim}" .. nl }),
-    }
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return M.latex.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1832,8 +1818,8 @@ M.splitTokens = splitTokens
 M.splitList = splitList
 M.html = html
 M.markdown = markdown
-M.latex = latex
 M.vimdoc = vimdoc
+M.latex = latex
 M.process = process
 
 if arg then
