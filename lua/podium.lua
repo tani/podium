@@ -187,6 +187,13 @@ local function append(t, ...)
   return r
 end
 
+
+---@param source string
+---@return string
+local function sanitizeHtml(source)
+  return (source:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
+end
+
 ---@param source string
 ---@return string "\r"|"\n"|"\r\n"
 local function guessNewline(source)
@@ -1108,7 +1115,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return {
       element:clone({ value = "<pre><code>", kind = "text" }),
-      element:clone({ kind = "text" }),
+      element:clone({ kind = "text", value = sanitizeHtml(element.value) }),
       element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ value = "</code></pre>" .. nl, kind = "text" }),
     }
