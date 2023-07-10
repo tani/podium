@@ -13,12 +13,17 @@
       const $ = document.querySelector.bind(document);
       $('#convert').addEventListener('click', async event => {
         const source = $('#source').value;
-        const target = $('#target').value;
-        const output = await fetch(target, {
+        const target= $('#target').value;
+        const output = await fetch(target.replace(/-.*/, ''), {
           method: 'POST',
           body: source
         }).then(r => r.text());
-        document.querySelector('#output > code').innerHTML = sanitize(output);
+        if (target.endsWith('-code')) {
+          document.querySelector('#output').innerHTML =
+            `<pre><code>${sanitize(output)}</code></pre>`;
+        } else if (target === 'html') {
+          document.querySelector('#output').innerHTML = output;
+        }
       });
 
       const readme = await fetch('README.pod').then(r => r.text());
@@ -40,8 +45,10 @@
         padding-right: 50px;
       }
       #output {
+        padding: 0 20px;
         margin: 0;
         overflow: scroll;
+        border: 1px solid #ccc;
       }
     </style>
 </head>
@@ -52,9 +59,10 @@
       <label>
         <select id="target" name="target">
           <option value="html">HTML</option>
-          <option value="vimdoc">Vimdoc</option>
-          <option value="latex">LaTeX</option>
-          <option value="markdown">Markdown</option>
+          <option value="html-code">HTML (code)</option>
+          <option value="vimdoc-code">Vimdoc</option>
+          <option value="latex-code">LaTeX</option>
+          <option value="markdown-code">Markdown</option>
         </select>
       </label>
       <label>
@@ -63,7 +71,7 @@
     </div>
     <div class="flex two">
       <label><textarea id="source" name="source"></textarea></label>
-      <label><pre id="output"><code></code></pre></label>
+      <label><div id="output"></div></label>
     </div >
   </div>
 </body>
