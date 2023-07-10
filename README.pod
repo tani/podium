@@ -5,9 +5,6 @@ description: POD parser and tool
 
 =pod
 
-=for html <h1>TEST</h1>
-
-
 =head1 Podium
 
 =head2 Playground
