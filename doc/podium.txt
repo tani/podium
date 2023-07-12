@@ -1,62 +1,62 @@
----
-name: podium
-description: POD parser and tool
----
+*podium.txt*                                              POD parser and tool
+=============================================================================
+Podium~
 
-=pod
+Playground ~
+                                                          *podium-playground*
 
-=head1 Podium
+You can try Podium in your browser at |https://pod.deno.dev/|.
 
-=head2 Playground X<podium-playground>
+Description ~
+                                                         *podium-description*
 
-You can try Podium in your browser at L<https://pod.deno.dev/>.
+This is a parser and tool for Plain Old Documentation (POD) |https://perldoc.perl.org/perlpod|.
 
-=head2 Description X<podium-description>
-
-This is a parser and tool for L<Plain Old Documentation (POD)|https://perldoc.perl.org/perlpod>.
-
-=head2 Features X<podium-features>
+Features ~
+                                                            *podium-features*
 
 POD parser provides a convenient way to write documentation and comes with the
 following features:
 
-=over
-
-=item * Easy-to-read syntax
-
-=item * Multiple output formats (HTML, Markdown, LaTeX, Vimdoc)
-
-=item * Command line interface for simple conversion
-
-=item * Extensible for integration into other projects
-
-=back
+    - Easy-to-read syntax
+    - Multiple output formats (HTML, Markdown, LaTeX, Vimdoc)
+    - Command line interface for simple conversion
+    - Extensible for integration into other projects
 
 To get started using POD, download a file and follow
 the usage instructions provided in the subsequent sections.
 
-=head2 Installation X<podium-installation>
+Installation ~
+                                                        *podium-installation*
 
+>
   $ wget https://pod.deno.dev/podium.lua
   $ chmod +x podium.lua
+<
 
-=head2 Usage X<podium-usage>
+Usage ~
+                                                               *podium-usage*
 
 To use Podium, you can either use the WebAPI, the command line interface, or
 the application programming interface.
 
-=head3 WebAPI X<podium-webapi>
+WebAPI ~
+                                                              *podium-webapi*
 
-WebAPI is available at L<https://pod.deno.dev/>.
+WebAPI is available at |https://pod.deno.dev/|.
 
+>
   $ curl --data-binary @path/to/file.pod https://pod.deno.dev/markdown
   $ curl --data-binary `$(cat path/to/file.pod)` https://pod.deno.dev/html
   $ cat path/to/file.pod | curl --data-binary @- https://pod.deno.dev/latex
+<
 
-=head3 Command Line Interface X<podium-cli>
+Command Line Interface ~
+                                                                 *podium-cli*
 
 To run the command line interface, you need to install Lua.
 
+>
   $ podium.lua markdown path/to/file.pod path/to/file.md   # write markdown
   $ podium.lua latex    path/to/file.pod path/to/file.tex  # write latex
   $ podium.lua vimdoc   path/to/file.pod path/to/file.txt  # write vimdoc
@@ -64,32 +64,33 @@ To run the command line interface, you need to install Lua.
 
   $ podium.lua html path/to/file.pod > path/to/file.html # wirte html to stdout
   $ podium.lua html < path/to/file.pod > path/to/file.html # write html to stdout, read pod from stdin
+<
 
-=head3 Application Programming Interface X<podium-api>
+Application Programming Interface ~
+                                                                 *podium-api*
 
 If you want to use Podium in your own project, you can use the application
 programming interface (API) to convert POD to HTML, Markdown, LaTeX, or Vimdoc.
 
+>
   local podium = require('podium')
   local inputString = "..."
   local backend = podium.html -- or markdown, latex, vimdoc
   print(podium.process(backend, inputString)) -- process returns output string
+<
 
-=over
-
-=item 1. Create a new C<PodiumProcessor> object,
-  which takes an output format as an argument.
-
-=item 2. Call the C<process> method on the PodiumProcessor object.
-
-=back
+    - Create a new `PodiumProcessor` object,
+      which takes an output format as an argument.
+    - Call the `process` method on the PodiumProcessor object.
 
 To  customize the output, see below.
 
-=head2 Customization X<podium-customization>
+Customization ~
+                                                       *podium-customization*
 
-B<Example:>
+{Example:}
 
+>
   -- example.lua
   podium = dofile('podium.lua')
 
@@ -106,31 +107,28 @@ B<Example:>
 
   -- write the string to file
   io.open('path/to/file.html', 'w'):write(outputString)
+<
 
 Podium consists of the three components:
 
-=over
-
-=item * C<process> converts a string into another string using a C<PodiumBackend> instance.
-
-=item * C<PodiumBackend> converts the tree structure into a string.
-
-=item * C<PodiumElement> represents a node in the tree structure.
-
-=back
+    - `process` converts a string into another string using a `PodiumBackend` instance.
+    - `PodiumBackend` converts the tree structure into a string.
+    - `PodiumElement` represents a node in the tree structure.
 
 Please be relaxed, you don't need to know the details of the tree structure.
 You just need to arrange the simple string-to-string conversion.
 
-You can customize the output by tweaking C<PodiumBackend> instance,
+You can customize the output by tweaking `PodiumBackend` instance,
 which has four methods for simple customization:
 
-=head3 C<registerSimpleFormattingCode(self, name, fun)> X<registerSimpleFormattingCode()>
+`registerSimpleFormattingCode(self, name, fun)` ~
+                                             *registerSimpleFormattingCode()*
 
-This method registers a simple formatting code, e.g., C<BE<lt>...E<gt>>.
-C<name> is the name of the formatting code: the single capital letter.
-C<fun> is a function that takes a string and returns a string.
+This method registers a simple formatting code, e.g., `B<...>`.
+`name` is the name of the formatting code: the single capital letter.
+`fun` is a function that takes a string and returns a string.
 
+>
   local podium = require('podium')
   local inputString = "..."
   local backend = podium.html -- or markdown, latex, vimdoc
@@ -138,13 +136,16 @@ C<fun> is a function that takes a string and returns a string.
     return '<b style="font-weight: bold">' .. text .. '</b>'
   end)
   print(podium.process(backend, inputString)) -- process returns output string
+<
 
-=head3 C<registerSimpleCommand(self, name, fun)> X<registerSimpleCommand()>
+`registerSimpleCommand(self, name, fun)` ~
+                                                    *registerSimpleCommand()*
 
-This method registers a simple command, e.g., C<=head1 ...>.
-C<name> is the name of the command defined in the POD document.
-Please do not override C<=begin> and C<=end> commands.
+This method registers a simple command, e.g., `=head1 ...`.
+`name` is the name of the command defined in the POD document.
+Please do not override `=begin` and `=end` commands.
 
+>
   local podium = require('podium')
   local inputString = "..."
   local backend = podium.html -- or markdown, latex, vimdoc
@@ -152,13 +153,16 @@ Please do not override C<=begin> and C<=end> commands.
     return '<h1 style="font-weight: bold">' .. text .. '</h1>'
   end)
   print(podium.process(backend, inputString)) -- process returns output string
+<
 
-=head3 C<registerSimpleDataParagraph(self, name, fun)> X<registerSimpleDataParagraph()>
+`registerSimpleDataParagraph(self, name, fun)` ~
+                                              *registerSimpleDataParagraph()*
 
 This method registers a simple data paragraph, e.g., content between
-C<=begin name> and C<=end name> commands.
-C<name> is the name of the data paragraph, e.g., html or markdown.
+`=begin name` and `=end name` commands.
+`name` is the name of the data paragraph, e.g., html or markdown.
 
+>
   local podium = require('podium')
   local inputString = "..."
   local backend = podium.html -- or markdown, latex, vimdoc
@@ -166,15 +170,18 @@ C<name> is the name of the data paragraph, e.g., html or markdown.
     return '<div>' .. text .. '</div>'
   end)
   print(podium.process(backend, inputString)) -- process returns output string
+<
 
-=head3 C<registerSimple(self, name, fun)> X<registerSimple()>
+`registerSimple(self, name, fun)` ~
+                                                           *registerSimple()*
 
 This method is used to register another simple conversion, e.g., preamble, and
-postambles. C<name> is the name of the conversion, e.g., preamble, and
-postambles. C<fun> is a function that takes a string and returns a string.
+postambles. `name` is the name of the conversion, e.g., preamble, and
+postambles. `fun` is a function that takes a string and returns a string.
 The function takes the entire input string as an argument for preamble and
 postambles.
 
+>
   local podium = require('podium')
   local inputString = "..."
   local backend = podium.html -- or markdown, latex, vimdoc
@@ -186,11 +193,14 @@ postambles.
       return '</body></html>'
     end)
   print(podium.process(html, inputString)) -- process returns output string
+<
 
-=head2 JavaScript API X<podium-js-api>
+JavaScript API ~
+                                                              *podium-js-api*
 
 Podium is written in Lua, but you can use it in JavaScript as well.
 
+>
   import {LuaFactory} from 'npm:wasmoon@latest';
   const luaFactory = new LuaFactory();
   const lua = await luaFactory.createEngine();
@@ -205,11 +215,14 @@ Podium is written in Lua, but you can use it in JavaScript as well.
   // Arguments: backend name, input string
   // Returns: output string
   pod.process("html", "...")
+<
 
-=head2 License X<podium-license>
+License ~
+                                                             *podium-license*
 
 Licensed under MIT License.
 
 Copyright (c) 2022 TANIGUCHI Masaya
 
-=cut
+
+vim:tw=78:ts=8:noet:ft=help:norl:
