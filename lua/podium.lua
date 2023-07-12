@@ -1421,8 +1421,7 @@ local function vimdoc_head(element)
     return append(tokens, {
       element:clone({
         kind = "text",
-        value = "~" .. nl,
-        string.rep(" ", padding),
+        value = "~" .. nl .. string.rep(" ", padding),
       }),
     }, tags, { element:clone({ kind = "text", value = nl .. nl }) })
   else
