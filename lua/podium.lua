@@ -155,6 +155,14 @@ function PodiumElement.trim(self)
   return self:sub(startIndex, self.endIndex - #space)
 end
 
+---@param self PodiumElement
+---@return PodiumElement
+function PodiumElement.sanitize(self)
+  return self:clone({
+    value = self.value:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"),
+  })
+end
+
 ---@generic T
 ---@param t T[]
 ---@param i? integer
@@ -187,12 +195,6 @@ local function append(t, ...)
   return r
 end
 
-
----@param source string
----@return string
-local function sanitizeHtml(source)
-  return (source:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
-end
 
 ---@param source string
 ---@return string "\r"|"\n"|"\r\n"
@@ -691,8 +693,11 @@ local function splitItems(element)
   return items
 end
 
----@type PodiumBackendElement
-local function splitTokens(element)
+---@param element PodiumElement
+---@param sanitize? boolean (default: false)
+---@return PodiumElement[]
+local function splitTokens(element, sanitize)
+  sanitize = sanitize or false
   ---@type PodiumElement[]
   local tokens = {}
   local i = element.startIndex
@@ -720,6 +725,13 @@ local function splitTokens(element)
         })
       )
       i = element.endIndex + 1
+    end
+  end
+  if sanitize then
+    for j = 1, #tokens do
+      if tokens[j].kind == "text" then
+        tokens[j] = tokens[j]:sanitize()
+      end
     end
   end
   return tokens
@@ -1042,7 +1054,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return append(
       { element:clone({ value = "<h1>", kind = "text" }) },
-      splitTokens(element:sub((element:find("%s"))):trim()),
+      splitTokens(element:sub((element:find("%s"))):trim(), true),
       { element:clone({ value = "</h1>" .. nl, kind = "text" }) }
     )
   end,
@@ -1050,7 +1062,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return append(
       { element:clone({ value = "<h2>", kind = "text" }) },
-      splitTokens(element:sub((element:find("%s"))):trim()),
+      splitTokens(element:sub((element:find("%s"))):trim(), true),
       { element:clone({ value = "</h2>" .. nl, kind = "text" }) }
     )
   end,
@@ -1058,7 +1070,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return append(
       { element:clone({ value = "<h3>", kind = "text" }) },
-      splitTokens(element:sub((element:find("%s"))):trim()),
+      splitTokens(element:sub((element:find("%s"))):trim(), true),
       { element:clone({ value = "</h3>" .. nl, kind = "text" }) }
     )
   end,
@@ -1066,7 +1078,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return append(
       { element:clone({ value = "<h4>", kind = "text" }) },
-      splitTokens(element:sub((element:find("%s"))):trim()),
+      splitTokens(element:sub((element:find("%s"))):trim(), true),
       { element:clone({ value = "</h4>" .. nl, kind = "text" }) }
     )
   end,
@@ -1074,7 +1086,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return append(
       { element:clone({ value = "<p>", kind = "text" }) },
-      splitTokens(element:trim()),
+      splitTokens(element:trim(), true),
       { element:clone({ value = "</p>" .. nl, kind = "text" }) }
     )
   end,
@@ -1115,7 +1127,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return {
       element:clone({ value = "<pre><code>", kind = "text" }),
-      element:clone({ kind = "text", value = sanitizeHtml(element.value) }),
+      element:trim():sanitize():clone({ kind = "text" }),
       element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ value = "</code></pre>" .. nl, kind = "text" }),
     }
@@ -1148,13 +1160,13 @@ local html = PodiumBackend.new({
     return splitItems(element)
   end,
   itempart = function(element)
-    return splitTokens(element)
+    return splitTokens(element, true)
   end,
   I = function(element)
     local _, startIndex, endIndex, _ = findFormattingCode(element)
     return append(
       { element:clone({ value = "<em>", kind = "text" }) },
-      splitTokens(element:sub(startIndex, endIndex):trim()),
+      splitTokens(element:sub(startIndex, endIndex):trim(), true),
       { element:clone({ value = "</em>", kind = "text" }) }
     )
   end,
@@ -1162,7 +1174,7 @@ local html = PodiumBackend.new({
     local _, startIndex, endIndex, _ = findFormattingCode(element)
     return append(
       { element:clone({ value = "<strong>", kind = "text" }) },
-      splitTokens(element:sub(startIndex, endIndex):trim()),
+      splitTokens(element:sub(startIndex, endIndex):trim(), true),
       { element:clone({ value = "</strong>", kind = "text" }) }
     )
   end,
@@ -1170,7 +1182,7 @@ local html = PodiumBackend.new({
     local _, startIndex, endIndex, _ = findFormattingCode(element)
     return append(
       { element:clone({ value = "<code>", kind = "text" }) },
-      splitTokens(element:sub(startIndex, endIndex):trim()),
+      splitTokens(element:sub(startIndex, endIndex):trim(), true),
       { element:clone({ value = "</code>", kind = "text" }) }
     )
   end,
@@ -1181,17 +1193,17 @@ local html = PodiumBackend.new({
     if b then
       return append(
         { element:clone({ value = '<a href="', kind = "text" }) },
-        splitTokens(newElement:sub(e + 1)),
+        splitTokens(newElement:sub(e + 1), true),
         { element:clone({ value = '">', kind = "text" }) },
-        splitTokens(newElement:sub(b, e - 1)),
+        splitTokens(newElement:sub(b, e - 1), true),
         { element:clone({ value = "</a>", kind = "text" }) }
       )
     else
       return append(
         { element:clone({ value = '<a href="', kind = "text" }) },
-        splitTokens(newElement),
+        splitTokens(newElement, true),
         { element:clone({ value = '">', kind = "text" }) },
-        splitTokens(newElement),
+        splitTokens(newElement, true),
         { element:clone({ value = "</a>", kind = "text" }) }
       )
     end
@@ -1207,7 +1219,7 @@ local html = PodiumBackend.new({
     local _, startIndex, endIndex, _ = findFormattingCode(element)
     return append(
       { element:clone({ value = '<a name=">', kind = "text" }) },
-      splitTokens(element:sub(startIndex, endIndex):trim()),
+      splitTokens(element:sub(startIndex, endIndex):trim(), true),
       { element:clone({ value = '">', kind = "text" }) },
       { element:clone({ value = "</a>", kind = "text" }) }
     )
