@@ -43,7 +43,7 @@ describe("POD Parser", function()
       ]])
       local b_cmd, b_arg, e_arg, e_cmd =
         pod.findDataParagraph(pod.PodiumElement.new(source))
-      assert.are.same({ 1, 12, 44, 54 }, { b_cmd, b_arg, e_arg, e_cmd })
+      assert.are.same({ 1, 13, 44, 54 }, { b_cmd, b_arg, e_arg, e_cmd })
     end)
   end)
   describe("splitList function", function()
