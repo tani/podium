@@ -967,7 +967,7 @@ local function findDataParagraph(element)
       startIndex = startIndex + #line
       endIndex = endIndex + #line
       if line:match("^%s*$") then
-        startIndex = startIndex - #line - 1
+        startIndex = startIndex - #line
         table.insert(lines, line)
         blockState = 2
       end
@@ -1134,7 +1134,15 @@ local html = PodiumBackend.new({
   end,
   data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return M.html.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+    local dataKind = element.extraProps.dataKind
+    return {
+      element:sub(startIndex, endIndex):clone({ kind = dataKind }),
+    }
+  end,
+  ["for"] = function(element)
+    local nl = guessNewline(element.source)
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return { element:sub(startIndex):clone({ kind = dataKind }) }
   end,
   html = function(element)
     return { element:clone({ kind = "text" }) }
@@ -1147,11 +1155,6 @@ local html = PodiumBackend.new({
       splitItem(element:sub(startIndex):trim()),
       { element:clone({ kind = "text", value = "</li>" .. nl }) }
     )
-  end,
-  ["for"] = function(element)
-    local nl = guessNewline(element.source)
-    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
-    return M.html.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1313,7 +1316,15 @@ local markdown = PodiumBackend.new({
   end,
   data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return M.markdown.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+    local dataKind = element.extraProps.dataKind
+    return {
+      element:sub(startIndex, endIndex):clone({ kind = dataKind }),
+    }
+  end,
+  ["for"] = function(element)
+    local nl = guessNewline(element.source)
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return { element:sub(startIndex):clone({ kind = dataKind }) }
   end,
   html = function(element)
     return { element:clone({ kind = "text" }) }
@@ -1330,11 +1341,6 @@ local markdown = PodiumBackend.new({
       splitItem(element:sub(startIndex):trim()),
       { element:clone({ kind = "text", value = nl }) }
     )
-  end,
-  ["for"] = function(element)
-    local nl = guessNewline(element.source)
-    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
-    return M.markdown.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1523,7 +1529,15 @@ local vimdoc = PodiumBackend.new({
   end,
   data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return M.vimdoc.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+    local dataKind = element.extraProps.dataKind
+    return {
+      element:sub(startIndex, endIndex):clone({ kind = dataKind }),
+    }
+  end,
+  ["for"] = function(element)
+    local nl = guessNewline(element.source)
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return { element:sub(startIndex):clone({ kind = dataKind }) }
   end,
   vimdoc = function(element)
     return { element:clone({ kind = "text" }) }
@@ -1540,11 +1554,6 @@ local vimdoc = PodiumBackend.new({
       splitItem(element:sub(startIndex):trim()),
       { element:clone({ kind = "text", value = nl }) }
     )
-  end,
-  ["for"] = function(element)
-    local nl = guessNewline(element.source)
-    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
-    return M.vimdoc.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
@@ -1710,7 +1719,15 @@ local latex = PodiumBackend.new({
   end,
   data = function(element)
     local _, startIndex, endIndex, _ = findDataParagraph(element)
-    return M.latex.rules[element.extraProps.dataKind](element:sub(startIndex, endIndex):trim())
+    local dataKind = element.extraProps.dataKind
+    return {
+      element:sub(startIndex, endIndex):clone({ kind = dataKind }),
+    }
+  end,
+  ["for"] = function(element)
+    local nl = guessNewline(element.source)
+    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
+    return { element:sub(startIndex):clone({ kind = dataKind }) }
   end,
   latex = function(element)
     return { element:clone({ kind = "text" }) }
@@ -1723,11 +1740,6 @@ local latex = PodiumBackend.new({
       splitItem(element:sub(startIndex):trim()),
       { element:clone({ kind = "text", value = nl }) }
     )
-  end,
-  ["for"] = function(element)
-    local nl = guessNewline(element.source)
-    local _, startIndex, dataKind = element:find("^=for%s+(%S+)%s")
-    return M.latex.rules[dataKind](element:sub(startIndex):trim())
   end,
   list = function(element)
     return splitList(element)
