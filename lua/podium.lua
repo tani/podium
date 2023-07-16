@@ -363,7 +363,7 @@ local function findFormattingCode(element)
   error("Failed to find inline command")
 end
 
----@type PodiumBackendElement
+---@type PodiumBackendRule
 local function splitParagraphs(element)
   local state_list = 0
   local state_para = 0
@@ -545,7 +545,7 @@ local function splitParagraphs(element)
   return paragraphs
 end
 
----@type PodiumBackendElement
+---@type PodiumBackendRule
 local function splitItem(element)
   local itemState = 0
   ---@type string[]
@@ -605,7 +605,7 @@ local function splitItem(element)
   return parts
 end
 
----@type PodiumBackendElement
+---@type PodiumBackendRule
 local function splitItems(element)
   ---@type PodiumElement[]
   local items = {}
@@ -737,7 +737,7 @@ local function splitTokens(element, sanitize)
   return tokens
 end
 
----@type PodiumBackendElement
+---@type PodiumBackendRule
 local function splitList(element)
   ---@type 'over' | 'items' | 'back'
   local listState = "over"
@@ -903,14 +903,14 @@ local function process(backend, source)
   return output
 end
 
----@alias PodiumBackendElement fun(element: PodiumElement): PodiumElement[]
+---@alias PodiumBackendRule fun(element: PodiumElement): PodiumElement[]
 ---@class PodiumBackend
----@field rules table<string, PodiumBackendElement>
+---@field rules table<string, PodiumBackendRule>
 ---@field registerSimpleFormattingCode fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimpleCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimpleDataParagraph fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimple fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
----@field register fun(self: PodiumBackend, name: string, fun: PodiumBackendElement): PodiumBackend
+---@field register fun(self: PodiumBackend, name: string, fun: PodiumBackendRule): PodiumBackend
 local PodiumBackend = {
   rules = {},
 }
@@ -1035,7 +1035,7 @@ function PodiumBackend.register(self, name, fun)
   return self
 end
 
----@param rules table<string, PodiumBackendElement>
+---@param rules table<string, PodiumBackendRule>
 ---@return PodiumBackend
 function PodiumBackend.new(rules)
   setmetatable(rules, {
@@ -1432,7 +1432,7 @@ local markdown = PodiumBackend.new({
   end,
 })
 
----@type PodiumBackendElement
+---@type PodiumBackendRule
 local function vimdoc_head(element)
   local nl = guessNewline(element.source)
   local tokens = splitTokens(element:sub((element:find("%s"))):trim())
