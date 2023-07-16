@@ -910,6 +910,7 @@ end
 ---@field registerSimpleCommand fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimpleDataParagraph fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
 ---@field registerSimple fun(self: PodiumBackend, name: string, fun: fun(content: string): string): PodiumBackend
+---@field register fun(self: PodiumBackend, name: string, fun: PodiumBackendElement): PodiumBackend
 local PodiumBackend = {
   rules = {},
 }
@@ -1016,12 +1017,21 @@ end
 function PodiumBackend.registerSimple(self, name, fun)
   self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
   self.rules[name] = function(element)
-    local startIndex, endIndex = findDataParagraph(element)
-    local arg = element.source:sub(startIndex, endIndex)
     return {
-      element:clone({ kind = "text", value = fun(arg) }),
+      element:clone({ kind = "text", value = fun(element.value) }),
     }
   end
+  return self
+end
+
+
+---@param self PodiumBackend
+---@param name string
+---@param fun fun(content: string): string
+---@return PodiumBackend
+function PodiumBackend.register(self, name, fun)
+  self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
+  self.rules[name] = fun
   return self
 end
 
