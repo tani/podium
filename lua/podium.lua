@@ -985,11 +985,17 @@ local function findDataParagraph(element)
       if line:match("^=end") then
         endIndex = endIndex - #line
         blockState = 4
-      else
+      elseif line:match("^%s*$") then
         table.insert(lines, line)
         blockState = 3
+      else
+        table.insert(lines, line)
+        blockState = 2
       end
     end
+  end
+  if blockState ~= 4 then
+    error("Data paragraph is unexpectedly terminated")
   end
   return element.startIndex, startIndex, endIndex - 1, element.endIndex
 end
@@ -1001,10 +1007,8 @@ end
 function PodiumBackend.registerSimpleDataParagraph(self, name, fun)
   self = type(self) == "string" and M[self] or self ---@cast self PodiumBackend
   self.rules[name] = function(element)
-    local _, startIndex, endIndex, _ = findDataParagraph(element)
-    local arg = element:sub(startIndex, endIndex).value
     return {
-      element:clone({ kind = "text", value = fun(arg) }),
+      element:clone({ kind = "text", value = fun(element.value) }),
     }
   end
   return self
