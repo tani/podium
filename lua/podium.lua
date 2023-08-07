@@ -1142,7 +1142,6 @@ local html = PodiumBackend.new({
     return {
       element:clone({ value = "<pre><code>", kind = "text" }),
       element:trim():sanitize():clone({ kind = "text" }),
-      element:clone({ kind = "backspace", extraProps = { deleteCount = 1 } }),
       element:clone({ value = "</code></pre>" .. nl, kind = "text" }),
     }
   end,
