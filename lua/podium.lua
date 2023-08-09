@@ -178,6 +178,17 @@ local function slice(t, i, j)
   return r
 end
 
+---@param str string
+---@return string
+local function unindent(str)
+  local lines = pod.splitLines(pod.PodiumElement.new(str))
+  local indent = lines[1]:match("^%s*")
+  for i, line in ipairs(lines) do
+    lines[i] = line:gsub("^" .. indent, "")
+  end
+  return table.concat(lines)
+end
+
 ---@generic T
 ---@param t T[]
 ---@param ... T[]
@@ -194,7 +205,6 @@ local function append(t, ...)
   end
   return r
 end
-
 
 ---@param source string
 ---@return string "\r"|"\n"|"\r\n"
@@ -526,7 +536,7 @@ local function splitParagraphs(element)
       table.insert(
         paragraphs,
         element:sub(startIndex, endIndex):clone({
-          kind = 'data',
+          kind = "data",
           extraProps = { dataKind = block_name },
         })
       )
@@ -1028,7 +1038,6 @@ function PodiumBackend.registerSimple(self, name, fun)
   return self
 end
 
-
 ---@param self PodiumBackend
 ---@param name string
 ---@param fun fun(content: string): string
@@ -1141,7 +1150,7 @@ local html = PodiumBackend.new({
     local nl = guessNewline(element.source)
     return {
       element:clone({ value = "<pre><code>", kind = "text" }),
-      element:trim():sanitize():clone({ kind = "text" }),
+      element:sanitize():clone({ kind = "text" }),
       element:clone({ value = "</code></pre>" .. nl, kind = "text" }),
     }
   end,
@@ -1847,6 +1856,7 @@ local latex = PodiumBackend.new({
 
 M.PodiumElement = PodiumElement
 M.PodiumBackend = PodiumBackend
+M.unindent = unindent
 M.append = append
 M.slice = slice
 M.guessNewline = guessNewline
